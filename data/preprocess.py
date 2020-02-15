@@ -2,12 +2,17 @@ import os
 import shutil
 import numpy as np
 import pickle
+if __name__ == '__main__':
+    import sys
+    sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
 from tqdm import tqdm
 from data import VIDEO_DIR, TRAIN_SPLIT_FILE, TEST_SPLIT_FILE, VIDEO_EXT, LABEL_EXT
 from data import TRAIN_VID_DIR, TEST_VID_DIR, TRAIN_LABEL_DIR, TEST_LABEL_DIR
 from data import TRAIN_SEGMENT_DIR, TRAIN_SEGMENT_DICT, TEST_SEGMENT_DIR, TEST_SEGMENT_DICT
 from data import read_label_file, read_mapping_file, read_segment_from_video
 from data import OLD_MAPPING_FILE, MAPPING_FILE
+from data import BAD_TRAIN_SEGMENTS_FILE, BAD_TEST_SEGMENTS_FILE
 
 
 def _read_split_file(split_file):
@@ -138,9 +143,8 @@ def _extract_train_test_segments():
                 segment_logit = action_to_logit_dict[segment_action]
                 segment_name = '.'.join([file[:-len(VIDEO_EXT)], str(i)])
                 segment_file = os.path.join(segment_dir, segment_name + '.npy')
-                if not os.path.exists(segment_file):
-                    segment_frames = read_segment_from_video(vid_file, segment_window)
-                    np.save(segment_file, segment_frames)
+                segment_frames = read_segment_from_video(vid_file, segment_window)
+                np.save(segment_file, segment_frames)
 
                 segment_dict = {
                     'action': segment_action,
@@ -148,7 +152,8 @@ def _extract_train_test_segments():
                     'window': segment_window,
                     'vid-file': vid_file,
                     'label-file': label_file,
-                    'segment-file': segment_file
+                    'segment-file': segment_file,
+                    'n-frames': len(segment_frames)
                 }
                 all_dict[segment_name] = segment_dict
         return all_dict
@@ -178,10 +183,39 @@ def _generate_mapping_file():
             f.write(' '.join([str(value), str(key)]) + '\n')
 
 
+def _check_train_test_segments():
+    def check_segments(all_dict_file):
+        with open(all_dict_file, 'rb') as f:
+            all_dict = pickle.load(f)
+        bad_segments = []
+        pbar = tqdm(all_dict.items())
+        for segment, segment_dict in pbar:
+            segment_file = segment_dict['segment-file']
+            segment_frames = np.load(segment_file)
+            segment_window = segment_dict['window']
+
+            if len(segment_frames) == 0 and (segment_window[1] - segment_window[0] != 0):
+                bad_segments.append(segment)
+            pbar.set_postfix({'# bad segments': len(bad_segments)})
+        return bad_segments
+    # checking train and test segments
+    bad_train_segments = check_segments(TRAIN_SEGMENT_DICT)
+    with open(BAD_TRAIN_SEGMENTS_FILE, 'w') as f:
+        for seg in bad_train_segments:
+            f.write(seg + '\n')
+
+    bad_test_segments = check_segments(TEST_SEGMENT_DICT)
+    with open(BAD_TEST_SEGMENTS_FILE, 'w') as f:
+        for seg in bad_test_segments:
+            f.write(seg + '\n')
+
+
 def main():
-    _split_train_test_videos()
-    _generate_mapping_file()
-    _extract_train_test_segments()
+    # _split_train_test_videos()
+    # _generate_mapping_file()
+    # _extract_train_test_segments()
+    # _check_train_test_segments()
+    pass
 
 
 if __name__ == '__main__':

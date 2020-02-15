@@ -16,12 +16,14 @@ TRAIN_VID_DIR = os.path.join(TRAIN_DIR, 'videos')
 TRAIN_LABEL_DIR = os.path.join(TRAIN_DIR, 'labels')
 TRAIN_SEGMENT_DIR = os.path.join(TRAIN_DIR, 'segments')
 TRAIN_SEGMENT_DICT = os.path.join(TRAIN_DIR, 'segments-dict.json')
+BAD_TRAIN_SEGMENTS_FILE = os.path.join(TRAIN_DIR, 'bad-segments.txt')
 
 TEST_DIR = os.path.join(DATA_DIR, 'test')
 TEST_VID_DIR = os.path.join(TEST_DIR, 'videos')
 TEST_LABEL_DIR = os.path.join(TEST_DIR, 'labels')
 TEST_SEGMENT_DIR = os.path.join(TEST_DIR, 'segments')
-TEST_SEGMENT_DICT = os.path.join(TRAIN_DIR, 'segments-dict.json')
+TEST_SEGMENT_DICT = os.path.join(TEST_DIR, 'segments-dict.json')
+BAD_TEST_SEGMENTS_FILE = os.path.join(TEST_DIR, 'bad-segments.txt')
 
 VIDEO_EXT = '.avi'
 LABEL_EXT = '.avi.labels'
