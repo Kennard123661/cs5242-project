@@ -18,3 +18,11 @@ TEST_LABEL_DIR = os.path.join(TEST_DIR, 'labels')
 
 VIDEO_EXT = '.avi'
 LABEL_EXT = '.avi.labels'
+
+
+def read_label(label_file):
+    with open(label_file, 'r') as f:
+        labels = f.readlines()
+    labels = [label.strip() for label in labels]
+
+    for i in range(n_segments)

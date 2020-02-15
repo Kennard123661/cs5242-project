@@ -110,6 +110,22 @@ def _split_train_test_videos():
     split_videos(TEST_VID_DIR, TEST_LABEL_DIR, test_split)
 
 
+def _extract_train_test_segments():
+    def extract_segments(video_dir, label_dir, segment_dir):
+        if not os.path.exists(segment_dir):
+            os.makedirs(segment_dir)
+        files = sorted(os.listdir(video_dir))
+        for file in files:
+            vid_file = os.path.join(video_dir, file)
+            label_file = file[:len(VIDEO_EXT)] + LABEL_EXT
+            label_file = os.path.join(label_dir, label_file)
+
+
+        for vid_file in vid_files:
+
+
+
+
 def main():
     _split_train_test_videos()
 
