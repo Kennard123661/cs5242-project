@@ -1,9 +1,13 @@
 import os
 import shutil
 import numpy as np
+import pickle
 from tqdm import tqdm
-from data import VIDEO_DIR, TRAIN_SPLIT_FILE, TEST_SPLIT_FILE, VIDEO_EXT, LABEL_EXT, DATA_DIR
+from data import VIDEO_DIR, TRAIN_SPLIT_FILE, TEST_SPLIT_FILE, VIDEO_EXT, LABEL_EXT
 from data import TRAIN_VID_DIR, TEST_VID_DIR, TRAIN_LABEL_DIR, TEST_LABEL_DIR
+from data import TRAIN_SEGMENT_DIR, TRAIN_SEGMENT_DICT, TEST_SEGMENT_DIR, TEST_SEGMENT_DICT
+from data import read_label_file, read_mapping_file, read_segment_from_video
+from data import OLD_MAPPING_FILE, MAPPING_FILE
 
 
 def _read_split_file(split_file):
@@ -111,23 +115,73 @@ def _split_train_test_videos():
 
 
 def _extract_train_test_segments():
-    def extract_segments(video_dir, label_dir, segment_dir):
+    def generate_segments(video_dir, label_dir, segment_dir):
+        # the frames are in one-based indexing.
         if not os.path.exists(segment_dir):
             os.makedirs(segment_dir)
+
         files = sorted(os.listdir(video_dir))
-        for file in files:
+        action_to_logit_dict, _ = read_mapping_file(MAPPING_FILE)
+
+        all_dict = dict()
+        pbar = tqdm(files)
+        for file in pbar:
+            pbar.set_postfix({'video': file})
+
             vid_file = os.path.join(video_dir, file)
-            label_file = file[:len(VIDEO_EXT)] + LABEL_EXT
+            label_file = str(file)[:-len(VIDEO_EXT)] + LABEL_EXT
             label_file = os.path.join(label_dir, label_file)
 
+            segment_windows, segment_actions = read_label_file(label_file)
+            for i, segment_action in enumerate(segment_actions):
+                segment_window = segment_windows[i]
+                segment_logit = action_to_logit_dict[segment_action]
+                segment_name = '.'.join([file[:-len(VIDEO_EXT)], str(i)])
+                segment_file = os.path.join(segment_dir, segment_name + '.npy')
+                if not os.path.exists(segment_file):
+                    segment_frames = read_segment_from_video(vid_file, segment_window)
+                    np.save(segment_file, segment_frames)
 
-        for vid_file in vid_files:
+                segment_dict = {
+                    'action': segment_action,
+                    'label': segment_logit,
+                    'window': segment_window,
+                    'vid-file': vid_file,
+                    'label-file': label_file,
+                    'segment-file': segment_file
+                }
+                all_dict[segment_name] = segment_dict
+        return all_dict
+    train_segments_dict = generate_segments(TRAIN_VID_DIR, TRAIN_LABEL_DIR, TRAIN_SEGMENT_DIR)
+    with open(TRAIN_SEGMENT_DICT, 'wb') as f:
+        pickle.dump(train_segments_dict, f)
+    test_segments_dict = generate_segments(TEST_VID_DIR, TEST_LABEL_DIR, TEST_SEGMENT_DIR)
+    with open(TEST_SEGMENT_DICT, 'wb') as f:
+        pickle.dump(test_segments_dict, f)
 
 
+def _generate_mapping_file():
+    def update_mapping(mapping, label_dir):
+        label_files = os.listdir(label_dir)
+        label_files = [os.path.join(label_dir, file) for file in label_files]
+        for file in label_files:
+            _, segment_labels = read_label_file(file)
+            for label in segment_labels:
+                if label not in mapping.keys():
+                    mapping[label] = len(mapping.keys())
+        return mapping
+    updated_mapping, _ = read_mapping_file(OLD_MAPPING_FILE)
+    updated_mapping = update_mapping(updated_mapping, label_dir=TRAIN_LABEL_DIR)
+    updated_mapping = update_mapping(updated_mapping, label_dir=TEST_LABEL_DIR)
+    with open(MAPPING_FILE, 'w') as f:
+        for key, value in updated_mapping.items():
+            f.write(' '.join([str(value), str(key)]) + '\n')
 
 
 def main():
     _split_train_test_videos()
+    _generate_mapping_file()
+    _extract_train_test_segments()
 
 
 if __name__ == '__main__':
