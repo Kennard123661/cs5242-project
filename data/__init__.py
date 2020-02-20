@@ -1,6 +1,8 @@
 import os
 import cv2
 import numpy as np
+import torch.utils.data as tdata
+from torch.utils.data._utils.collate import default_collate
 
 DATA_DIR = '/mnt/Data/cs5242-dataset'
 VIDEO_DIR = os.path.join(DATA_DIR, 'videos')
@@ -27,6 +29,29 @@ BAD_TEST_SEGMENTS_FILE = os.path.join(TEST_DIR, 'bad-segments.txt')
 
 VIDEO_EXT = '.avi'
 LABEL_EXT = '.avi.labels'
+
+# https://github.com/pytorch/pytorch/blob/master/caffe2/video/video_input_op.h#L374-L378
+CAFFE_INPUT_MEAN = [110.201, 100.64, 95.9966]
+CAFFE_INPUT_STD = [58.1489, 56.4701, 55.3324]
+
+
+class BaseDataset(tdata.Dataset):
+    def __init__(self, videos, labels, crop_size):
+        super(BaseDataset, self).__init__()
+        assert len(videos) == len(labels)
+        self.videos = np.array(videos).astype(str)
+        self.labels = np.array(labels).astype(int)
+        self.crop_size = int(crop_size)
+
+    def __len__(self):
+        return len(self.videos)
+
+    @staticmethod
+    def collate_fn(batch):
+        video_frames, labels = zip(*batch)
+        video_frames = default_collate(video_frames)
+        labels = default_collate(labels)
+        return video_frames, labels
 
 
 def read_label_file(label_file):
