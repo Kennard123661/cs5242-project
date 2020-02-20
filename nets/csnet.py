@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+from nets import load_csn_model
+from nets import init_bn_layer, init_hidden_layer
 
 
 DEEP_FILTER_CONFIG = [
@@ -165,6 +167,50 @@ class IrCsn152(nn.Module):
 
         self.last_out = nn.Linear(in_features=DEEP_FILTER_CONFIG[3][0], out_features=self.n_classes)
 
+    def load_caffe_weights(self):
+        checkpoint = load_csn_model()
+
+        conv1_layers = list(self.conv1.children())
+        init_hidden_layer(hidden_layer=conv1_layers[0], scope='conv1', weight_dict=checkpoint)
+        init_bn_layer(bn_layer=conv1_layers[1], scope='conv1_spatbn_relu', weight_dict=checkpoint)
+
+        def init_bottleneck_layers(subnet, bi):
+            bottleneck_layers = list(subnet.children())
+            for bottleneck in bottleneck_layers:
+                self._init_bottleneck_layer(bottleneck, bi, checkpoint)
+                bi += 1
+            return bi
+        i = 0  # bottleneck idx
+        i = init_bottleneck_layers(self.conv2, i)
+        print(i)
+        i = init_bottleneck_layers(self.conv3, i)
+        i = init_bottleneck_layers(self.conv4, i)
+        i = init_bottleneck_layers(self.conv5, i)
+
+    @staticmethod
+    def _init_bottleneck_layer(bottleneck, idx, weight_dict):
+        prefix = 'comp_{}'.format(idx)
+        layers = list(bottleneck.net.children())
+        layer_idxs = [1, 3, 4]
+
+        i = 0
+        for layer in layers:
+            l_id = layer_idxs[i]
+            if isinstance(layer, nn.BatchNorm3d):
+                name = '_'.join([prefix, 'spatbn', str(l_id)])
+                init_bn_layer(layer, scope=name, weight_dict=weight_dict)
+                i += 1
+            elif isinstance(layer, nn.Conv3d):
+                name = '_'.join([prefix, 'conv', str(l_id)])
+                init_hidden_layer(layer, scope=name, weight_dict=weight_dict)
+
+        if isinstance(bottleneck.shortcut, nn.Sequential):
+            shortcut_layers = list(bottleneck.shortcut.children())
+            conv_name = 'shortcut_projection_{}'.format(idx)
+            bn_name = '_'.join([conv_name, 'spatbn'])
+            init_hidden_layer(shortcut_layers[0], scope=conv_name, weight_dict=weight_dict)
+            init_bn_layer(shortcut_layers[1], scope=bn_name, weight_dict=weight_dict)
+
     def forward(self, inputs):
         out = self.conv1(inputs)
         out = self.pool1(out)
@@ -178,12 +224,14 @@ class IrCsn152(nn.Module):
         return out
 
 
+
 if __name__ == '__main__':
     clip_len = 8
     crop_size = 224
     n_classes = 400
 
     network = IrCsn152(n_classes, clip_len, crop_size)
-    data = torch.from_numpy(np.random.randn(2, 3, 8, 224, 224)).float()
-    out = network(data)
-    print(out.shape)
+    network.load_caffe_weights()
+    # data = torch.from_numpy(np.random.randn(2, 3, 8, 224, 224)).float()
+    # out = network(data)
+    # print(out.shape)
