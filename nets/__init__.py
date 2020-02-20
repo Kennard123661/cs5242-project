@@ -2,8 +2,6 @@ import os
 import numpy as np
 import pandas as pd
 import torch
-import csv
-
 
 
 MODEL_DIR = '/mnt/Data/cs5242-dataset/models'

@@ -43,6 +43,10 @@ class BaseDataset(tdata.Dataset):
         self.labels = np.array(labels).astype(int)
         self.crop_size = int(crop_size)
 
+        # check that all the videos exists
+        for video in self.videos:
+            assert os.path.exists(video)
+
     def __len__(self):
         return len(self.videos)
 
