@@ -47,6 +47,8 @@ class Bottleneck(nn.Module):
                 use_striding = [1, 2, 2]
         else:
             use_striding = [1, 1, 1]
+        if self.downsampling:
+            print(use_striding)
 
         self.layers.append(self.add_conv(self.base_filters, self.base_filters,
                                          kernels=[3, 3, 3] if self.is_real_3d else [1, 3, 3],
@@ -87,37 +89,11 @@ class Bottleneck(nn.Module):
             return nn.Conv3d(in_channels=in_filters, out_channels=out_filters, kernel_size=kernels,
                              stride=strides, padding=pads, bias=False)
         elif block_type == '3d-sep':
-            pass
+            # depthwise convolution
+            return nn.Conv3d(in_channels=in_filters, out_channels=out_filters, kernel_size=kernels,
+                             stride=strides, padding=pads, bias=False, groups=self.input_filters)
         else:
             raise ValueError('no such block type {}'.format(block_type))
-
-    def add_channelwise_conv(self, in_filters, out_filters, kernels, strides=None, pads=None):
-        if strides is None:
-            strides = [1, 1, 1]
-
-        if pads is None:
-            pads = [0, 0, 0]
-
-
-    def forward(self, x):
-        residual = x
-        out = self.conv1(x)
-        out = self.bn1(out)
-        out = self.relu(out)
-
-        out = self.conv2(out)
-        out = self.bn2(out)
-        out = self.relu(out)
-
-        out = self.conv3(out)
-        out = self.bn3(out)
-
-        if self.downsampling is not None:
-            residual = self.downsampling(x)
-
-        out += residual
-        out = self.relu(out)
-        return out
 
 
 class IrCsn152(nn.Module):
@@ -134,18 +110,51 @@ class IrCsn152(nn.Module):
             nn.ReLU(inplace=True))
         self.pool1 = nn.MaxPool3d(kernel_size=(1, 3, 3), stride=(1, 2, 2), padding=(0, 1, 1))
         # block type is 3d-sep
-        conv2_layers = [self.add_bottleneck(64, DEEP_FILTER_CONFIG[0][0], DEEP_FILTER_CONFIG[0][1])]
 
         self.n_bottlenecks = [3, 8, 36, 3]
+
+        # conv_2x
+        conv2_layers = [
+            Bottleneck(64, DEEP_FILTER_CONFIG[0][0], DEEP_FILTER_CONFIG[0][1], block_type=self.block_type,
+                       use_shuffle=self.use_shuffle)
+        ]
+        for _ in range(self.n_bottlenecks[0] - 1):
+            conv2_layers.append(Bottleneck(DEEP_FILTER_CONFIG[0][0], DEEP_FILTER_CONFIG[0][0], DEEP_FILTER_CONFIG[0][1],
+                                           is_real_3d=False))
+        self.conv2 = nn.Sequential(*conv2_layers)
+
+        # conv_3x
+        conv3_layers = [
+            Bottleneck(DEEP_FILTER_CONFIG[0][0], DEEP_FILTER_CONFIG[1][0], DEEP_FILTER_CONFIG[1][1],
+                       downsampling=True, is_real_3d=False)
+        ]
+        for _ in range(self.n_bottlenecks[1] - 1):
+            conv3_layers.append(Bottleneck(DEEP_FILTER_CONFIG[1][0], DEEP_FILTER_CONFIG[1][0], DEEP_FILTER_CONFIG[1][1],
+                                           is_real_3d=False))
+        self.conv3 = nn.Sequential(*conv3_layers)
+
+        # conv_4x
+        conv4_layers = [
+            Bottleneck(DEEP_FILTER_CONFIG[1][0], DEEP_FILTER_CONFIG[2][0], DEEP_FILTER_CONFIG[2][1],
+                       downsampling=True, is_real_3d=False)
+        ]
+        for _ in range(self.n_bottlenecks[2] - 1):
+            conv4_layers.append(Bottleneck(DEEP_FILTER_CONFIG[2][0], DEEP_FILTER_CONFIG[2][0], DEEP_FILTER_CONFIG[2][1],
+                                           is_real_3d=False))
+        self.conv4 = nn.Sequential(*conv4_layers)
+
 
     def forward(self, inputs):
         out = self.conv1(inputs)
         out = self.pool1(out)
+        out = self.conv2(out)
+        out = self.conv3(out)
+        # out = self.conv4(out)
         return out
 
 
 if __name__ == '__main__':
     network = IrCsn152(1000)
-    data = torch.from_numpy(np.random.randn(2, 3, 32, 224, 224)).float()
+    data = torch.from_numpy(np.random.randn(2, 3, 8, 224, 224)).float()
     out = network(data)
     print(out.shape)
