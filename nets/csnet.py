@@ -5,6 +5,8 @@ import numpy as np
 from nets import load_csn_model
 from nets import init_bn_layer, init_hidden_layer
 
+N_CLASSES_IG65 = 359
+
 
 DEEP_FILTER_CONFIG = [
     [256, 64],
@@ -64,7 +66,7 @@ class Bottleneck(nn.Module):
         self.net = nn.Sequential(*self.layers)
 
         self.shortcut = lambda tensor: tensor  # identity
-        if (self.output_filters != self.input_filters or self.downsampling):
+        if (self.output_filters != self.input_filters) or self.downsampling:
             shortcut_layers = [
                 nn.Conv3d(self.input_filters, self.output_filters, kernel_size=1,
                           stride=use_striding, bias=False)
@@ -137,7 +139,7 @@ class IrCsn152(nn.Module):
             Bottleneck(DEEP_FILTER_CONFIG[0][0], DEEP_FILTER_CONFIG[1][0], DEEP_FILTER_CONFIG[1][1],
                        downsampling=True, block_type=self.block_type, use_shuffle=self.use_shuffle)
         ]
-        for _ in range(self.n_bottlenecks[0] - 1):
+        for _ in range(self.n_bottlenecks[1] - 1):
             conv3_layers.append(Bottleneck(DEEP_FILTER_CONFIG[1][0], DEEP_FILTER_CONFIG[1][0], DEEP_FILTER_CONFIG[1][1],
                                            block_type=self.block_type, use_shuffle=self.use_shuffle))
         self.conv3 = nn.Sequential(*conv3_layers)
@@ -147,7 +149,7 @@ class IrCsn152(nn.Module):
             Bottleneck(DEEP_FILTER_CONFIG[1][0], DEEP_FILTER_CONFIG[2][0], DEEP_FILTER_CONFIG[2][1],
                        downsampling=True, block_type=self.block_type, use_shuffle=self.use_shuffle)
         ]
-        for _ in range(self.n_bottlenecks[0] - 1):
+        for _ in range(self.n_bottlenecks[2] - 1):
             conv4_layers.append(Bottleneck(DEEP_FILTER_CONFIG[2][0], DEEP_FILTER_CONFIG[2][0], DEEP_FILTER_CONFIG[2][1],
                                            block_type=self.block_type, use_shuffle=self.use_shuffle))
         self.conv4 = nn.Sequential(*conv4_layers)
@@ -157,7 +159,7 @@ class IrCsn152(nn.Module):
             Bottleneck(DEEP_FILTER_CONFIG[2][0], DEEP_FILTER_CONFIG[3][0], DEEP_FILTER_CONFIG[3][1],
                        downsampling=True, block_type=self.block_type, use_shuffle=self.use_shuffle)
         ]
-        for _ in range(self.n_bottlenecks[0] - 1):
+        for _ in range(self.n_bottlenecks[3] - 1):
             conv5_layers.append(Bottleneck(DEEP_FILTER_CONFIG[3][0], DEEP_FILTER_CONFIG[3][0], DEEP_FILTER_CONFIG[3][1],
                                            block_type=self.block_type, use_shuffle=self.use_shuffle))
         self.conv5 = nn.Sequential(*conv5_layers)
@@ -182,10 +184,12 @@ class IrCsn152(nn.Module):
             return bi
         i = 0  # bottleneck idx
         i = init_bottleneck_layers(self.conv2, i)
-        print(i)
         i = init_bottleneck_layers(self.conv3, i)
         i = init_bottleneck_layers(self.conv4, i)
-        i = init_bottleneck_layers(self.conv5, i)
+        init_bottleneck_layers(self.conv5, i)
+
+        if self.n_classes == N_CLASSES_IG65:
+            init_hidden_layer(hidden_layer=self.last_out, scope='last_out_L359', weight_dict=checkpoint)
 
     @staticmethod
     def _init_bottleneck_layer(bottleneck, idx, weight_dict):
@@ -224,14 +228,15 @@ class IrCsn152(nn.Module):
         return out
 
 
-
-if __name__ == '__main__':
+def main():
     clip_len = 8
     crop_size = 224
-    n_classes = 400
-
-    network = IrCsn152(n_classes, clip_len, crop_size)
+    network = IrCsn152(N_CLASSES_IG65, clip_len, crop_size)
     network.load_caffe_weights()
     # data = torch.from_numpy(np.random.randn(2, 3, 8, 224, 224)).float()
     # out = network(data)
     # print(out.shape)
+
+
+if __name__ == '__main__':
+    main()
