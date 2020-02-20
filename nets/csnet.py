@@ -50,7 +50,7 @@ class ChannelSeparated3DResNet152(nn.Module):
 
         self.conv1 = nn.Sequential(
             nn.Conv3d(3, 64, kernel_size=(3, 7, 7), stride=(1, 2, 2), padding=(1, 3, 3), bias=False),
-            nn.BatchNorm3d(64),
+            nn.BatchNorm3d(64, eps=1e-03),
             nn.ReLU(inplace=True))
         self.pool1 = nn.MaxPool3d(kernel_size=(1, 3, 3), stride=(1, 2, 2), padding=(0, 1, 1))
 
