@@ -47,8 +47,6 @@ class Bottleneck(nn.Module):
                 use_striding = [1, 2, 2]
         else:
             use_striding = [1, 1, 1]
-        if self.downsampling:
-            print(use_striding)
 
         self.layers.append(self.add_conv(self.base_filters, self.base_filters,
                                          kernels=[3, 3, 3] if self.is_real_3d else [1, 3, 3],
@@ -84,34 +82,43 @@ class Bottleneck(nn.Module):
 
         if group > 1:
             assert self.block_type == '3d-group'
-
         if block_type == '3d':
             return nn.Conv3d(in_channels=in_filters, out_channels=out_filters, kernel_size=kernels,
                              stride=strides, padding=pads, bias=False)
         elif block_type == '3d-sep':
             # depthwise convolution
             return nn.Conv3d(in_channels=in_filters, out_channels=out_filters, kernel_size=kernels,
-                             stride=strides, padding=pads, bias=False, groups=self.input_filters)
+                             stride=strides, padding=pads, bias=False, groups=in_filters)
         else:
             raise ValueError('no such block type {}'.format(block_type))
 
 
 class IrCsn152(nn.Module):
-    def __init__(self, n_class, mode='ir'):
+    def __init__(self, n_classes, clip_len, crop_size):
         super(IrCsn152, self).__init__()
-        assert mode in ['ir', 'ip'], 'mode should be iteration reducing or preserving'
+        self.n_classes = int(n_classes)
+        self.use_shuffle = False
+        self.block_type = '3d-sep'
+        self.n_bottlenecks = [3, 8, 36, 3]
 
-        self.n_class = int(n_class)
-        self.mode = mode
+        self.clip_len = int(clip_len)
+        self.crop_size = int(crop_size)
+
+        self.final_temporal_kernel = self.clip_len // 8
+        if self.crop_size == 112 or self.crop_size == 128:
+            self.final_spatial_kernel = 7
+        elif self.crop_size == 224 or crop_size == 256:
+            self.final_spatial_kernel = 7
+        elif self.crop_size == 320:
+            self.final_spatial_kernel = 7
+        else:
+            raise ValueError('unknown crop size')
 
         self.conv1 = nn.Sequential(
             nn.Conv3d(3, 64, kernel_size=(3, 7, 7), stride=(1, 2, 2), padding=(1, 3, 3), bias=False),
             nn.BatchNorm3d(64, eps=1e-03),
             nn.ReLU(inplace=True))
         self.pool1 = nn.MaxPool3d(kernel_size=(1, 3, 3), stride=(1, 2, 2), padding=(0, 1, 1))
-        # block type is 3d-sep
-
-        self.n_bottlenecks = [3, 8, 36, 3]
 
         # conv_2x
         conv2_layers = [
@@ -120,41 +127,63 @@ class IrCsn152(nn.Module):
         ]
         for _ in range(self.n_bottlenecks[0] - 1):
             conv2_layers.append(Bottleneck(DEEP_FILTER_CONFIG[0][0], DEEP_FILTER_CONFIG[0][0], DEEP_FILTER_CONFIG[0][1],
-                                           is_real_3d=False))
+                                           block_type=self.block_type, use_shuffle=self.use_shuffle))
         self.conv2 = nn.Sequential(*conv2_layers)
 
         # conv_3x
         conv3_layers = [
             Bottleneck(DEEP_FILTER_CONFIG[0][0], DEEP_FILTER_CONFIG[1][0], DEEP_FILTER_CONFIG[1][1],
-                       downsampling=True, is_real_3d=False)
+                       downsampling=True, block_type=self.block_type, use_shuffle=self.use_shuffle)
         ]
-        for _ in range(self.n_bottlenecks[1] - 1):
+        for _ in range(self.n_bottlenecks[0] - 1):
             conv3_layers.append(Bottleneck(DEEP_FILTER_CONFIG[1][0], DEEP_FILTER_CONFIG[1][0], DEEP_FILTER_CONFIG[1][1],
-                                           is_real_3d=False))
+                                           block_type=self.block_type, use_shuffle=self.use_shuffle))
         self.conv3 = nn.Sequential(*conv3_layers)
 
         # conv_4x
         conv4_layers = [
             Bottleneck(DEEP_FILTER_CONFIG[1][0], DEEP_FILTER_CONFIG[2][0], DEEP_FILTER_CONFIG[2][1],
-                       downsampling=True, is_real_3d=False)
+                       downsampling=True, block_type=self.block_type, use_shuffle=self.use_shuffle)
         ]
-        for _ in range(self.n_bottlenecks[2] - 1):
+        for _ in range(self.n_bottlenecks[0] - 1):
             conv4_layers.append(Bottleneck(DEEP_FILTER_CONFIG[2][0], DEEP_FILTER_CONFIG[2][0], DEEP_FILTER_CONFIG[2][1],
-                                           is_real_3d=False))
+                                           block_type=self.block_type, use_shuffle=self.use_shuffle))
         self.conv4 = nn.Sequential(*conv4_layers)
 
+        # conv 5x
+        conv5_layers = [
+            Bottleneck(DEEP_FILTER_CONFIG[2][0], DEEP_FILTER_CONFIG[3][0], DEEP_FILTER_CONFIG[3][1],
+                       downsampling=True, block_type=self.block_type, use_shuffle=self.use_shuffle)
+        ]
+        for _ in range(self.n_bottlenecks[0] - 1):
+            conv5_layers.append(Bottleneck(DEEP_FILTER_CONFIG[3][0], DEEP_FILTER_CONFIG[3][0], DEEP_FILTER_CONFIG[3][1],
+                                           block_type=self.block_type, use_shuffle=self.use_shuffle))
+        self.conv5 = nn.Sequential(*conv5_layers)
+
+        self.final_pool = nn.AvgPool3d(kernel_size=[self.final_temporal_kernel, self.final_spatial_kernel,
+                                                    self.final_spatial_kernel], stride=1)
+
+        self.last_out = nn.Linear(in_features=DEEP_FILTER_CONFIG[3][0], out_features=self.n_classes)
 
     def forward(self, inputs):
         out = self.conv1(inputs)
         out = self.pool1(out)
         out = self.conv2(out)
         out = self.conv3(out)
-        # out = self.conv4(out)
+        out = self.conv4(out)
+        out = self.conv5(out)
+        out = self.final_pool(out)
+        out = out.reshape(-1, DEEP_FILTER_CONFIG[3][0])
+        out = self.last_out(out)
         return out
 
 
 if __name__ == '__main__':
-    network = IrCsn152(1000)
+    clip_len = 8
+    crop_size = 224
+    n_classes = 400
+
+    network = IrCsn152(n_classes, clip_len, crop_size)
     data = torch.from_numpy(np.random.randn(2, 3, 8, 224, 224)).float()
     out = network(data)
     print(out.shape)
