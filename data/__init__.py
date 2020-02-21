@@ -35,13 +35,17 @@ LABEL_EXT = '.avi.labels'
 CAFFE_INPUT_MEAN = [110.201, 100.64, 95.9966]
 CAFFE_INPUT_STD = [58.1489, 56.4701, 55.3324]
 
+TORCH_MEAN = [0.485, 0.456, 0.406],
+TORCH_STD = [0.229, 0.224, 0.225]
+
 
 class BaseDataset(tdata.Dataset):
-    def __init__(self, videos, labels, crop_size):
+    def __init__(self, videos, resize, labels, crop_size):
         super(BaseDataset, self).__init__()
         assert len(videos) == len(labels)
         self.videos = np.array(videos).astype(str)
         self.labels = np.array(labels).astype(int)
+        self.resize = resize
         self.crop_size = int(crop_size)
 
         # check that all the videos exists
@@ -122,7 +126,7 @@ def get_n_video_frames(video_file):
     return n_frames
 
 
-def sample_video_clips(video_file, n_frames, idxs):
+def sample_video_clip(video_file, n_frames, idxs):
     """ returns the video frames from at idxs... """
     cap = cv2.VideoCapture(video_file)
     sample_idxs = np.unique(idxs)
