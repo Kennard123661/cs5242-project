@@ -103,9 +103,8 @@ class Bottleneck(nn.Module):
 
 
 class IrCsn152(nn.Module):
-    def __init__(self, n_classes, clip_len, crop_size, pretrained_ckpt):
+    def __init__(self, n_classes, clip_len, crop_size, pretrained_ckpt=None):
         super(IrCsn152, self).__init__()
-        assert pretrained_ckpt in ['kinetics', 'ig65']
         self.n_classes = int(n_classes)
         self.pretrained_ckpt = pretrained_ckpt
         self.use_shuffle = False
@@ -175,7 +174,28 @@ class IrCsn152(nn.Module):
                                                     self.final_spatial_kernel], stride=1)
 
         self.last_out = nn.Linear(in_features=DEEP_FILTER_CONFIG[3][0], out_features=self.n_classes)
-        self.load_caffe_weights()
+        if self.pretrained_ckpt is None:
+            self._init_weights()
+        else:
+            self.load_caffe_weights()
+
+    def _init_weights(self):
+        conv1_layers = list(self.conv1.children())
+        nn.init.kaiming_normal_(conv1_layers[0].weight, nonlinearity='relu')
+
+        def init_bottleneck_layers(bottleneck):
+            layers = list(bottleneck.net.children())
+            if isinstance(bottleneck.shortcut, nn.Sequential):
+                layers += list(bottleneck.shortcut.children())
+
+            for layer in layers:
+                if isinstance(layer, nn.Conv3d):
+                    nn.init.kaiming_normal_(layer.weight, nonlinearity='relu')
+        b_layers = list(self.conv2.children()) + list(self.conv3.children()) + list(self.conv4.children()) + \
+                   list(self.conv5.children())
+        for b_layer in b_layers:
+            init_bottleneck_layers(b_layer)
+
 
     def load_caffe_weights(self):
         checkpoint = load_csn_model(ckpt=self.pretrained_ckpt)
@@ -186,7 +206,7 @@ class IrCsn152(nn.Module):
         def init_bottleneck_layers(subnet, bi):
             bottleneck_layers = list(subnet.children())
             for bottleneck in bottleneck_layers:
-                self._init_bottleneck_layer(bottleneck, bi, checkpoint)
+                self._load_bottleneck_weights(bottleneck, bi, checkpoint)
                 bi += 1
             return bi
         i = 0  # bottleneck idx
@@ -201,7 +221,7 @@ class IrCsn152(nn.Module):
             init_hidden_layer(hidden_layer=self.last_out, scope='last_out_L400', weight_dict=checkpoint)
 
     @staticmethod
-    def _init_bottleneck_layer(bottleneck, idx, weight_dict):
+    def _load_bottleneck_weights(bottleneck, idx, weight_dict):
         prefix = 'comp_{}'.format(idx)
         layers = list(bottleneck.net.children())
         layer_idxs = [1, 3, 4]
@@ -257,8 +277,7 @@ def load_csn_model(ckpt='ig65'):
 def test_implementation():
     import data.kinetics_data as kinetics
     import data.ir_csn_data as ir_csn
-    network = IrCsn152(N_CLASSES_KINETICS, clip_len=ir_csn.CLIP_LEN, crop_size=ir_csn.CROP_SIZE,
-                       pretrained_ckpt='kinetics')
+    network = IrCsn152(N_CLASSES_KINETICS, clip_len=ir_csn.CLIP_LEN, crop_size=ir_csn.CROP_SIZE)
     network.eval()
     video_files, labels = kinetics.get_train_data()
     # print(video_files[0])
