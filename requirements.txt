@@ -4,3 +4,5 @@ torchvision
 tqdm
 opencv-python
 pandas
+tensorboard
+tensorboardX
