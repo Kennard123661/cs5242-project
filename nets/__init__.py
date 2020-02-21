@@ -6,7 +6,8 @@ import torch
 
 MODEL_DIR = '/mnt/Data/cs5242-dataset/models'
 CSNET_DIR = os.path.join(MODEL_DIR, 'csnet')
-IR_CSN_IG65_FILE = os.path.join(CSNET_DIR, 'irCSN_152_ig65m_from_scratch_f125286141.pkl')
+IRCSN_IG65_FILE = os.path.join(CSNET_DIR, 'irCSN_152_ig65m_from_scratch_f125286141.pkl')
+IRCSN_KINETICS_FILE = os.path.join(CSNET_DIR, 'irCSN_152_ft_kinetics_from_ig65m_f126851907.pkl')
 IR_CSN_IG65_CSV_FILE = os.path.join(CSNET_DIR, 'irCSN_152_ig65m_from_scratch_f125286141.csv')
 
 
@@ -14,7 +15,7 @@ def load_csn_model(ckpt='ig65'):
     import _pickle as pickle
     ckpt = str(ckpt).lower()
     if ckpt == 'ig65':
-        file = IR_CSN_IG65_FILE
+        file = IRCSN_KINETICS_FILE
     else:
         raise ValueError('no such checkpoint file')
     
