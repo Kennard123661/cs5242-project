@@ -5,13 +5,13 @@ import numpy as np
 import torch.nn.functional as F
 from nets import init_bn_layer, init_hidden_layer
 from nets import MODEL_DIR
+
 CSNET_DIR = os.path.join(MODEL_DIR, 'csnet')
 IRCSN_IG65_FILE = os.path.join(CSNET_DIR, 'irCSN_152_ig65m_from_scratch_f125286141.pkl')
 IRCSN_KINETICS_FILE = os.path.join(CSNET_DIR, 'irCSN_152_ft_kinetics_from_ig65m_f126851907.pkl')
 IR_CSN_IG65_CSV_FILE = os.path.join(CSNET_DIR, 'irCSN_152_ig65m_from_scratch_f125286141.csv')
 N_CLASSES_IG65 = 359
 N_CLASSES_KINETICS = 400
-
 
 DEEP_FILTER_CONFIG = [
     [256, 64],

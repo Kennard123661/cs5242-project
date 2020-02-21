@@ -20,7 +20,7 @@ class TrainDataset(BaseDataset):
         self.transforms = transforms.Compose([
             videotransforms.BgrToRgbClip(),
             videotransforms.ToImageClip(),
-            videotransforms.ResizeClip(size=self.resize),
+            videotransforms.AspectPreservingResizeClip(resize=self.resize),
             videotransforms.CenterCropClip(self.crop_size),
             videotransforms.NormalizeClip(TORCH_MEAN, TORCH_STD),
             videotransforms.To3dTensor()

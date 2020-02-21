@@ -2,6 +2,7 @@ import torch
 import cv2
 import numpy as np
 import torchvision.transforms as transforms
+import torchvision.transforms.functional as F
 from PIL import Image
 
 
@@ -15,6 +16,19 @@ class BgrToRgbClip:
 class ToImageClip:
     def __call__(self, clip):
         return [Image.fromarray(frame) for frame in clip]
+
+
+class AspectPreservingResizeClip:
+    def __init__(self, resize, interpolation=Image.BICUBIC):
+        self.resize = resize
+        self.interpolation = interpolation
+
+    def __call__(self, clip):
+        start_frame = clip[0]
+        min_size = min(start_frame.size)
+        ratio = self.resize / min_size
+        final_size = (np.array(start_frame.size) * ratio).astype(int)
+        return [F.resize(frame, size=final_size, interpolation=self.interpolation) for frame in clip]
 
 
 class ResizeClip:

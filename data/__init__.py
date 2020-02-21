@@ -123,7 +123,7 @@ def sample_video_clip(video_file, n_frames, idxs):
     return frames
 
 
-def resize_clip_from_min(clip, desired_size):
+def aspect_preserving_clip_resize(clip, desired_size):
     clip = [np.array(frame) for frame in clip]
     clip = [Image.fromarray(frame) for frame in clip]
     start_frame = clip[0]

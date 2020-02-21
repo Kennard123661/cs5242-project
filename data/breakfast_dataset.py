@@ -5,7 +5,6 @@ import shutil
 
 from data import get_n_video_frames, sample_video_clip, write_video_file, get_video_fps
 
-
 DATA_DIR = '/mnt/Data/cs5242-dataset'
 VIDEO_DIR = os.path.join(DATA_DIR, 'videos')
 
@@ -31,6 +30,7 @@ BAD_TEST_SEGMENTS_FILE = os.path.join(TEST_DIR, 'bad-segments.txt')
 
 VIDEO_EXT = '.avi'
 LABEL_EXT = '.avi.labels'
+N_CLASSES = 50
 
 
 def read_mapping_file(mapping_file):
