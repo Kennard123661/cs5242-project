@@ -37,17 +37,15 @@ class Trainer:
         self.max_epochs = int(self.config['max-epochs'])
         self.epoch = 0
         self.iteration = 0
-        self.batch_size = int(self.config['batch_size'])
+        self.batch_size = int(self.config['batch-size'])
         self.n_iterations = int(self.config['num-iterations'])
 
-        if dataset_name == 'kinetics':
-            import data.kinetics_data as dataset
-        elif dataset_name == 'breakfast':
+        if dataset_name == 'breakfast':
             import data.breakfast_dataset as dataset
         else:
             raise ValueError('no such dataset')
 
-        if model == 'ir_csn':
+        if model == 'ir-csn':
             self.crop_size = csnet_data.CROP_SIZE
             self.model = IrCsn152(n_classes=dataset.N_CLASSES, clip_len=self.clip_len, crop_size=self.crop_size)
         else:
@@ -75,14 +73,13 @@ class Trainer:
         train_clips, train_labels = dataset.get_train_data()
         if self.n_iterations == 0:
             self.n_iterations = len(train_clips)
-        # todo: add test data
-        # test_clips, test_labels = dataset.get_test_data()
+        test_clips, test_labels = dataset.get_test_data()
 
         if model == 'ir_csn':
             self.train_dataset = csnet_data.TrainDataset(videos=train_clips, labels=train_clips,
                                                          resize=csnet_data.CROP_SIZE, crop_size=csnet_data.CROP_SIZE,
                                                          clip_len=csnet_data.CLIP_LEN)
-            # todo: implement test dataset
+            # todo: implement test eval and train eval dataset
         else:
             raise ValueError('no such model... how did you even get here...')
 

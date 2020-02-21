@@ -1,3 +1,8 @@
 *.pyc
 .idea/*
 
+configs/*
+!configs/base.json
+
+checkpoints/*
+logs/*

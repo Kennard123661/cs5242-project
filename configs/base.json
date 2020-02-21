@@ -1,0 +1,17 @@
+{
+  "model": "ir-csn",
+  "optimizer": "adam",
+  "scheduler": "step",
+  "dataset": "breakfast",
+
+  "clip-length": 32,
+  "lr": 0.01,
+  "weight-decay": 0,
+  "max-epochs": 10,
+  "batch-size": 8,
+
+  "num-iterations": 2000,
+
+  "lr-decay-step-size": 100,
+  "lr-decay-rate": 0.5
+}

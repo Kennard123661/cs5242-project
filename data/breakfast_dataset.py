@@ -128,7 +128,6 @@ def _extract_train_test_segments():
     _generate_video_segments(TEST_VID_DIR, TEST_LABEL_DIR, TEST_SEGMENT_DIR)
 
 
-
 def _split_train_test_videos():
     def split_videos(video_dir, label_dir, split_dict):
         if not os.path.exists(video_dir):
@@ -176,7 +175,22 @@ def _split_train_test_videos():
     split_videos(TEST_VID_DIR, TEST_LABEL_DIR, test_split)
 
 
+def get_train_data():
+    train_videos = sorted(os.listdir(TRAIN_SEGMENT_DIR))
+    train_labels = [int(os.path.split(vid)[-2]) for vid in train_videos]
+    train_videos = [os.path.join(TRAIN_SEGMENT_DIR, vid) for vid in train_videos]
+    return train_videos, train_labels
+
+
+def get_test_data():
+    test_videos = sorted(os.listdir(TEST_SEGMENT_DIR))
+    test_labels = [int(os.path.split(vid)[-2]) for vid in test_videos]
+    test_videos = [os.path.join(TEST_SEGMENT_DIR, vid) for vid in test_videos]
+    return test_videos, test_labels
+
+
 def main():
+    print(get_train_data())
     # _split_train_test_videos()
     # _extract_train_test_segments()
     pass
