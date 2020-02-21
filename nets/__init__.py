@@ -44,17 +44,17 @@ def create_csn_mapping():
 
 def init_bn_layer(bn_layer, scope, weight_dict):
     """ initializes weights for batchnorm layers """
-    bn_layer.running_mean.data = torch.from_numpy(weight_dict[scope + '_rm'])
-    bn_layer.running_var.data = torch.from_numpy(weight_dict[scope + '_riv'])
-    bn_layer.weight.data = torch.from_numpy(weight_dict[scope + '_s'])
-    bn_layer.bias.data = torch.from_numpy(weight_dict[scope + '_b'])
+    bn_layer.running_mean.data.copy_(torch.from_numpy(weight_dict[scope + '_rm']))
+    bn_layer.running_var.data.copy_(torch.from_numpy(weight_dict[scope + '_riv']))
+    bn_layer.weight.data.copy_(torch.from_numpy(weight_dict[scope + '_s']))
+    bn_layer.bias.data.copy_(torch.from_numpy(weight_dict[scope + '_b']))
 
 
 def init_hidden_layer(hidden_layer, scope, weight_dict):
     """ initializes weights for linear and conv layers """
     hidden_layer.weight.data = torch.from_numpy(weight_dict[scope + '_w'])
     if scope + '_b' in weight_dict.keys():  # check for bias
-        hidden_layer.bias.data = torch.from_numpy(weight_dict[scope + '_b'])
+        hidden_layer.bias.data.copy_(torch.from_numpy(weight_dict[scope + '_b']))
 
 
 if __name__ == '__main__':

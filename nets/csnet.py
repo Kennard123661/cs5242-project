@@ -1,11 +1,16 @@
+import os
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import numpy as np
-from nets import load_csn_model
+import torch.nn.functional as F
 from nets import init_bn_layer, init_hidden_layer
-
+from nets import MODEL_DIR
+CSNET_DIR = os.path.join(MODEL_DIR, 'csnet')
+IRCSN_IG65_FILE = os.path.join(CSNET_DIR, 'irCSN_152_ig65m_from_scratch_f125286141.pkl')
+IRCSN_KINETICS_FILE = os.path.join(CSNET_DIR, 'irCSN_152_ft_kinetics_from_ig65m_f126851907.pkl')
+IR_CSN_IG65_CSV_FILE = os.path.join(CSNET_DIR, 'irCSN_152_ig65m_from_scratch_f125286141.csv')
 N_CLASSES_IG65 = 359
+N_CLASSES_KINETICS = 400
 
 
 DEEP_FILTER_CONFIG = [
@@ -98,9 +103,11 @@ class Bottleneck(nn.Module):
 
 
 class IrCsn152(nn.Module):
-    def __init__(self, n_classes, clip_len, crop_size):
+    def __init__(self, n_classes, clip_len, crop_size, pretrained_ckpt):
         super(IrCsn152, self).__init__()
+        assert pretrained_ckpt in ['kinetics', 'ig65']
         self.n_classes = int(n_classes)
+        self.pretrained_ckpt = pretrained_ckpt
         self.use_shuffle = False
         self.block_type = '3d-sep'
         self.n_bottlenecks = [3, 8, 36, 3]
@@ -168,10 +175,10 @@ class IrCsn152(nn.Module):
                                                     self.final_spatial_kernel], stride=1)
 
         self.last_out = nn.Linear(in_features=DEEP_FILTER_CONFIG[3][0], out_features=self.n_classes)
+        self.load_caffe_weights()
 
     def load_caffe_weights(self):
-        checkpoint = load_csn_model()
-
+        checkpoint = load_csn_model(ckpt=self.pretrained_ckpt)
         conv1_layers = list(self.conv1.children())
         init_hidden_layer(hidden_layer=conv1_layers[0], scope='conv1', weight_dict=checkpoint)
         init_bn_layer(bn_layer=conv1_layers[1], scope='conv1_spatbn_relu', weight_dict=checkpoint)
@@ -190,6 +197,8 @@ class IrCsn152(nn.Module):
 
         if self.n_classes == N_CLASSES_IG65:
             init_hidden_layer(hidden_layer=self.last_out, scope='last_out_L359', weight_dict=checkpoint)
+        elif self.n_classes == N_CLASSES_KINETICS:
+            init_hidden_layer(hidden_layer=self.last_out, scope='last_out_L400', weight_dict=checkpoint)
 
     @staticmethod
     def _init_bottleneck_layer(bottleneck, idx, weight_dict):
@@ -228,14 +237,71 @@ class IrCsn152(nn.Module):
         return out
 
 
+def load_csn_model(ckpt='ig65'):
+    import _pickle as pickle
+    ckpt = str(ckpt).lower()
+    if ckpt == 'ig65':
+        file = IRCSN_IG65_FILE
+    elif ckpt == 'kinetics':
+        file = IRCSN_KINETICS_FILE
+    else:
+        raise ValueError('no such checkpoint file')
+
+    # solution to opening the file: https://github.com/ohtake/VMZ/commit/41800f475ef09624ecf1461bb19f1e5ee2edf0ac
+    with open(file, 'rb') as f:
+        model_ckpt = pickle.load(f, encoding='latin1')
+    model_ckpt = model_ckpt['blobs']
+    return model_ckpt
+
+
+def test_implementation():
+    import data.kinetics_data as kinetics
+    import data.ir_csn_data as ir_csn
+    network = IrCsn152(N_CLASSES_KINETICS, clip_len=ir_csn.CLIP_LEN, crop_size=ir_csn.CROP_SIZE,
+                       pretrained_ckpt='kinetics')
+    network.eval()
+    video_files, labels = kinetics.get_train_data()
+    # print(video_files[0])
+    # exit()
+    video_filenames = [os.path.split(file)[-1] for file in video_files]
+    n_correct = 0
+    n_vids = 0
+    with torch.no_grad():
+        for i, vid in enumerate(video_filenames):
+            if i == 0:
+                continue
+            logits = []
+            print(labels[i])
+            for j in range(30):
+                clip_file = os.path.join(kinetics.TRAIN_CLIP_DIR, '{}.{}.npy'.format(j, vid))
+                clip = np.load(clip_file)
+                clip = torch.from_numpy(clip).unsqueeze(0)  # expand to batch size
+                # print(clip)
+                logit = network(clip)
+                # print(logit)
+                print(torch.argmax(logit.squeeze()))
+                logits.append(logit)
+            logits = torch.cat(logits, dim=0)
+            logits = torch.mean(logits, dim=0)
+            prediction = torch.argmax(logits)
+            label = labels[i]
+            print(logits)
+            print(prediction)
+            print(label)
+            break
+
+
+
 def main():
-    clip_len = 8
-    crop_size = 224
-    network = IrCsn152(N_CLASSES_IG65, clip_len, crop_size)
-    network.load_caffe_weights()
+    # clip_len = 8
+    # crop_size = 224
+    # network = IrCsn152(N_CLASSES_IG65, clip_len, crop_size)
+    # network.load_caffe_weights()
     # data = torch.from_numpy(np.random.randn(2, 3, 8, 224, 224)).float()
     # out = network(data)
     # print(out.shape)
+    test_implementation()
+    pass
 
 
 if __name__ == '__main__':

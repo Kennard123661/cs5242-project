@@ -4,14 +4,13 @@ import os
 from PIL import Image
 from torchvision import transforms
 from tqdm import tqdm
-
+import cv2
 from data import BaseDataset
 from data import CAFFE_INPUT_MEAN, CAFFE_INPUT_STD
 from data import get_n_video_frames, sample_video_clips, resize_clip
 import data.kinetics_data as kinetics
 
-CROP_SIZE = 224
-RESIZE = 256
+CROP_SIZE = 256
 CLIP_LEN = 32
 
 
@@ -40,14 +39,14 @@ class InferenceDataset(BaseDataset):
         return video_frames, label
 
 
-def generate_inference_crops(video_files, resize, crop_size, n_clips, clip_len, clip_dir):
+def generate_inference_crops(video_files, crop_size, n_clips, clip_len, clip_dir):
     if not os.path.exists(clip_dir):
         os.makedirs(clip_dir)
 
     frame_transforms = transforms.Compose([
         lambda x: Image.fromarray(x),
         transforms.CenterCrop(crop_size),
-        lambda x: np.array(x).transpose([2, 0, 1]),
+        lambda x: np.array(x).transpose([2, 0, 1]).astype(np.float32),
         lambda x: torch.from_numpy(x),
         transforms.Normalize(mean=CAFFE_INPUT_MEAN, std=CAFFE_INPUT_STD),
         lambda x: x.numpy()
@@ -67,7 +66,8 @@ def generate_inference_crops(video_files, resize, crop_size, n_clips, clip_len, 
 
             clip_idxs = np.arange(start_frame, end_frame, step=2)
             clip = sample_video_clips(file, n_frames, clip_idxs)
-            clip = resize_clip(clip, resize)
+            clip = [cv2.cvtColor(frame, cv2.COLOR_BGR2RGB) for frame in clip]
+            clip = kinetics.resize_clip(clip)
             clip = np.array([frame_transforms(frame) for frame in clip]).transpose([1, 0, 2, 3])
 
             video_fn = os.path.split(file)[-1]
@@ -78,8 +78,8 @@ def generate_inference_crops(video_files, resize, crop_size, n_clips, clip_len, 
 def main():
     video_files, _ = kinetics.get_train_data()
     n_clips = 30
-    n_vids = 5
-    generate_inference_crops(video_files[:n_vids], resize=RESIZE, crop_size=CROP_SIZE, n_clips=n_clips,
+    n_vids = 1
+    generate_inference_crops(video_files[:n_vids], crop_size=CROP_SIZE, n_clips=n_clips,
                              clip_len=CLIP_LEN, clip_dir=kinetics.TRAIN_CLIP_DIR)
 
 

@@ -1,6 +1,7 @@
 import os
 import json
 import numpy as np
+from PIL import Image
 
 KINETICS_DIR = '/mnt/Data/kinetics-dataset'
 LABEL_MAPPING_FILE = os.path.join(KINETICS_DIR, 'label-mappings.csv')
@@ -9,6 +10,8 @@ TRAIN_JSON_FILE = os.path.join(KINETICS_DIR, 'train.json')
 TRAIN_VIDEO_DIR = os.path.join(KINETICS_DIR, 'train-videos')
 TRAIN_VIDEO_DL_SCRIPT = os.path.join(KINETICS_DIR, 'download-train-video.sh')
 TRAIN_CLIP_DIR = os.path.join(KINETICS_DIR, 'train-clips')
+H_SCALE = 256
+W_SCALE = 320
 
 
 def read_kinetics_json(json_file):
@@ -78,6 +81,14 @@ def get_train_data():
         labels.append(label)
     videos = [os.path.join(TRAIN_VIDEO_DIR, vid) for vid in train_videos]
     return videos, labels
+
+
+def resize_clip(clip, desired_size=(H_SCALE, W_SCALE)):
+    clip = [np.array(frame) for frame in clip]
+    clip = [Image.fromarray(frame) for frame in clip]
+    resized_clip = [frame.resize(desired_size, resample=Image.BICUBIC) for frame in clip]
+    resized_clip = [np.array(frame) for frame in resized_clip]
+    return resized_clip
 
 
 def main():
