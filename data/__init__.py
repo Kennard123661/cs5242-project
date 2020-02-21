@@ -1,6 +1,7 @@
 import os
 import cv2
 import numpy as np
+from PIL import Image
 import torch.utils.data as tdata
 from torch.utils.data._utils.collate import default_collate
 
@@ -106,3 +107,57 @@ def read_segment_from_video(vid_file, window=None):
     cap.release()
     return frames
 
+
+def get_n_video_frames(video_file):
+    """ returns the number of video frames in a video file """
+    cap = cv2.VideoCapture(video_file)
+    n_frames = 0
+    while cap.isOpened():
+        ret, _ = cap.read()
+        if ret:
+            n_frames += 1
+        else:
+            break
+    cap.release()
+    return n_frames
+
+
+def sample_video_clips(video_file, n_frames, idxs):
+    """ returns the video frames from at idxs... """
+    cap = cv2.VideoCapture(video_file)
+    sample_idxs = np.unique(idxs)
+    assert np.all(sample_idxs < n_frames)
+
+    frame_dict = dict()
+    max_sample = np.max(sample_idxs)
+    n_frames = 0
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if ret:
+            if n_frames in sample_idxs:
+                frame_dict[n_frames] = frame
+            n_frames += 1
+        else:
+            break
+
+        if max_sample < n_frames:
+            break  # complete reading
+    cap.release()
+
+    frames = []
+    for idx in idxs:
+        frames.append(frame_dict[idx])
+    return frames
+
+
+def resize_clip(clip, desired_size):
+    clip = [np.array(frame) for frame in clip]
+    clip = [Image.fromarray(frame) for frame in clip]
+    start_frame = clip[0]
+    min_size = min(start_frame.size)
+    ratio = desired_size / min_size
+    final_size = (np.array(start_frame.size) * ratio).astype(int)
+
+    resized_clip = [frame.resize(final_size, resample=Image.BICUBIC) for frame in clip]
+    resized_clip = [np.array(frame) for frame in resized_clip]
+    return resized_clip

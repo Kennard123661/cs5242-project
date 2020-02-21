@@ -8,6 +8,7 @@ LABEL_MAPPING_FILE = os.path.join(KINETICS_DIR, 'label-mappings.csv')
 TRAIN_JSON_FILE = os.path.join(KINETICS_DIR, 'train.json')
 TRAIN_VIDEO_DIR = os.path.join(KINETICS_DIR, 'train-videos')
 TRAIN_VIDEO_DL_SCRIPT = os.path.join(KINETICS_DIR, 'download-train-video.sh')
+TRAIN_CLIP_DIR = os.path.join(KINETICS_DIR, 'train-clips')
 
 
 def read_kinetics_json(json_file):
@@ -67,7 +68,7 @@ def _read_label_mappings():
 def get_train_data():
     _, word_label_mapping = _read_label_mappings()
     train_videos = sorted(os.listdir(TRAIN_VIDEO_DIR))
-    train_ids = [vid[:-4] for vid in train_videos]
+    train_ids = [vid.split('.')[0] for vid in train_videos]
     train_dict = read_kinetics_json(json_file=TRAIN_JSON_FILE)
     labels = []
     for v_id in train_ids:
