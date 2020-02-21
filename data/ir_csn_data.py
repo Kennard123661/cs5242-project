@@ -1,16 +1,12 @@
 import torch
 import numpy as np
-import os
 from PIL import Image
 from torchvision import transforms
-from tqdm import tqdm
-import cv2
 from data import videotransforms
 from data import BaseDataset
 from data import CAFFE_INPUT_MEAN, CAFFE_INPUT_STD
 from data import TORCH_MEAN, TORCH_STD
-from data import get_n_video_frames, sample_video_clip, resize_clip
-import data.kinetics_data as kinetics
+from data import get_n_video_frames, sample_video_clip
 
 CROP_SIZE = 256
 CLIP_LEN = 32
