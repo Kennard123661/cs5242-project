@@ -5,6 +5,26 @@
 The Kaggle competition is [here](https://www.kaggle.com/c/cs5242project/overview). The original Breakfasts dataset is 
 found [here](https://serre-lab.clps.brown.edu/resource/breakfast-actions-dataset/).
 
+## Training Resources
+
+### Soc Computer Cluster
+
+To connect to the SoC compute cluster, you need to connect to the following VPN:
+```bash
+Connection Name: SoC VPN
+Remote Gateway: webvpn.comp.nus.edu.sg
+Port: 443
+Username: NUSNET id (without domain)
+Password: NUSNET password
+Client Certificate: No
+``` 
+
+We recommend using [OpenFortiGui](https://hadler.me/linux/openfortigui/). Then, you can `ssh` into the compute clusters 
+available e.g.
+```bash
+ssh [socnet-id]@[cluster-name].comp.nus.edu.sg
+```
+
 
 ## Extras
 
