@@ -41,7 +41,7 @@ class Trainer:
         self.n_iterations = int(self.config['num-iterations'])
 
         if dataset_name == 'breakfast':
-            import data.breakfast_dataset as dataset
+            import data.breakfast_data as dataset
         else:
             raise ValueError('no such dataset')
 
