@@ -3,29 +3,29 @@ from tqdm import tqdm
 import numpy as np
 import shutil
 
+from data import DATA_DIR
 from data import get_n_video_frames, sample_video_clip, write_video_file, get_video_fps
 
-DATA_DIR = '/mnt/Data/cs5242-dataset'
-VIDEO_DIR = os.path.join(DATA_DIR, 'videos')
+# changes the data directory depending on whether
+BREAKFAST_DIR = os.path.join(DATA_DIR, 'breakfast')
+VIDEO_DIR = os.path.join(BREAKFAST_DIR, 'videos')
 
-SPLIT_DIR = os.path.join(DATA_DIR, 'splits')
+SPLIT_DIR = os.path.join(BREAKFAST_DIR, 'splits')
 TEST_SPLIT_FILE = os.path.join(SPLIT_DIR, 'test.split1.bundle')
 TRAIN_SPLIT_FILE = os.path.join(SPLIT_DIR, 'train.split1.bundle')
 OLD_MAPPING_FILE = os.path.join(SPLIT_DIR, 'mapping_bf.txt')
 MAPPING_FILE = os.path.join(SPLIT_DIR, 'mapping.txt')
 
-TRAIN_DIR = os.path.join(DATA_DIR, 'train')
+TRAIN_DIR = os.path.join(BREAKFAST_DIR, 'train')
 TRAIN_VID_DIR = os.path.join(TRAIN_DIR, 'videos')
 TRAIN_LABEL_DIR = os.path.join(TRAIN_DIR, 'labels')
 TRAIN_SEGMENT_DIR = os.path.join(TRAIN_DIR, 'segments')
-TRAIN_SEGMENT_DICT = os.path.join(TRAIN_DIR, 'segments-dict.json')
 BAD_TRAIN_SEGMENTS_FILE = os.path.join(TRAIN_DIR, 'bad-segments.txt')
 
-TEST_DIR = os.path.join(DATA_DIR, 'test')
+TEST_DIR = os.path.join(BREAKFAST_DIR, 'test')
 TEST_VID_DIR = os.path.join(TEST_DIR, 'videos')
 TEST_LABEL_DIR = os.path.join(TEST_DIR, 'labels')
 TEST_SEGMENT_DIR = os.path.join(TEST_DIR, 'segments')
-TEST_SEGMENT_DICT = os.path.join(TEST_DIR, 'segments-dict.json')
 BAD_TEST_SEGMENTS_FILE = os.path.join(TEST_DIR, 'bad-segments.txt')
 
 VIDEO_EXT = '.avi'
@@ -33,7 +33,7 @@ LABEL_EXT = '.avi.labels'
 N_CLASSES = 50
 
 
-def read_mapping_file(mapping_file):
+def _read_mapping_file(mapping_file):
     with open(mapping_file, 'r') as f:
         content = f.readlines()
     content = [line.strip().split(' ') for line in content]
@@ -95,7 +95,7 @@ def _generate_video_segments(video_dir, label_dir, segment_dir):
         os.makedirs(segment_dir)
 
     files = sorted(os.listdir(video_dir))
-    action_to_logit_dict, _ = read_mapping_file(MAPPING_FILE)
+    action_to_logit_dict, _ = _read_mapping_file(MAPPING_FILE)
 
     pbar = tqdm(files)
     for file in pbar:
@@ -190,7 +190,7 @@ def get_test_data():
 
 
 def main():
-    print(get_train_data())
+    # print(get_train_data())
     # _split_train_test_videos()
     # _extract_train_test_segments()
     pass

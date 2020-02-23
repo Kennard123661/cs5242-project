@@ -6,6 +6,9 @@ import torch.utils.data as tdata
 from torch.utils.data._utils.collate import default_collate
 
 
+DATA_DIR = '/mnt/Data/cs5242-datasets' if os.path.exists('/mnt/Data/cs5242-datasets') else \
+    '/home/e/e0036319/data/cs5242-datasets'
+
 # https://github.com/pytorch/pytorch/blob/master/caffe2/video/video_input_op.h#L374-L378
 CAFFE_INPUT_MEAN = [110.201, 100.64, 95.9966]
 CAFFE_INPUT_STD = [58.1489, 56.4701, 55.3324]
