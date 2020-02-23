@@ -22,6 +22,7 @@ class TrainDataset(BaseDataset):
             videotransforms.ToImageClip(),
             videotransforms.AspectPreservingResizeClip(resize=self.resize),
             videotransforms.CenterCropClip(self.crop_size),
+            videotransforms.ClipToTensor(),
             videotransforms.NormalizeClip(TORCH_MEAN, TORCH_STD),
             videotransforms.To3dTensor()
         ])
@@ -33,6 +34,7 @@ class TrainDataset(BaseDataset):
         n_frames = get_n_video_frames(video_file)
         sample_idxs = get_video_sample_idxs(n_frames, self.clip_len)
         clip = sample_video_clip(video_file, n_frames, sample_idxs)
+        clip = np.array(clip)
         clip = self.transforms(clip)
         return clip, label
 
@@ -47,6 +49,7 @@ class EvalDataset(BaseDataset):
             videotransforms.ToImageClip(),
             videotransforms.AspectPreservingResizeClip(resize=self.resize),
             videotransforms.CenterCropClip(self.crop_size),
+            videotransforms.ClipToTensor(),
             videotransforms.NormalizeClip(TORCH_MEAN, TORCH_STD),
             videotransforms.To3dTensor()
         ])

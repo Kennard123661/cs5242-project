@@ -118,9 +118,9 @@ class IrCsn152(nn.Module):
         if self.crop_size == 112 or self.crop_size == 128:
             self.final_spatial_kernel = 7
         elif self.crop_size == 224 or crop_size == 256:
-            self.final_spatial_kernel = 7
+            self.final_spatial_kernel = 14
         elif self.crop_size == 320:
-            self.final_spatial_kernel = 7
+            self.final_spatial_kernel = 14
         else:
             raise ValueError('unknown crop size')
 
@@ -169,9 +169,6 @@ class IrCsn152(nn.Module):
             conv5_layers.append(Bottleneck(DEEP_FILTER_CONFIG[3][0], DEEP_FILTER_CONFIG[3][0], DEEP_FILTER_CONFIG[3][1],
                                            block_type=self.block_type, use_shuffle=self.use_shuffle))
         self.conv5 = nn.Sequential(*conv5_layers)
-
-        self.final_pool = nn.AvgPool3d(kernel_size=[self.final_temporal_kernel, self.final_spatial_kernel,
-                                                    self.final_spatial_kernel], stride=1)
 
         self.last_out = nn.Linear(in_features=DEEP_FILTER_CONFIG[3][0], out_features=self.n_classes)
         if self.pretrained_ckpt is None:
@@ -250,7 +247,7 @@ class IrCsn152(nn.Module):
         out = self.conv3(out)
         out = self.conv4(out)
         out = self.conv5(out)
-        out = self.final_pool(out)
+        out = torch.mean(torch.mean(torch.mean(out, dim=4), dim=3), dim=2)
         out = out.reshape(-1, DEEP_FILTER_CONFIG[3][0])
         out = self.last_out(out)
         return out

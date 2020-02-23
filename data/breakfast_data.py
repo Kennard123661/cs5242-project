@@ -178,14 +178,14 @@ def _split_train_test_videos():
 
 def get_train_data():
     train_videos = sorted(os.listdir(TRAIN_SEGMENT_DIR))
-    train_labels = [int(os.path.split(vid)[-2]) for vid in train_videos]
+    train_labels = [int(vid.split('.')[-2]) for vid in train_videos]
     train_videos = [os.path.join(TRAIN_SEGMENT_DIR, vid) for vid in train_videos]
     return train_videos, train_labels
 
 
 def get_test_data():
     test_videos = sorted(os.listdir(TEST_SEGMENT_DIR))
-    test_labels = [int(os.path.split(vid)[-2]) for vid in test_videos]
+    test_labels = [int(vid.split('.')[-2]) for vid in test_videos]
     test_videos = [os.path.join(TEST_SEGMENT_DIR, vid) for vid in test_videos]
     return test_videos, test_labels
 
@@ -194,6 +194,7 @@ def main():
     # print(get_train_data())
     # _split_train_test_videos()
     # _extract_train_test_segments()
+    get_train_data()
     pass
 
 

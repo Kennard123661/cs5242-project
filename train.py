@@ -83,7 +83,7 @@ class Trainer:
             self.n_iterations = len(train_clips)
         test_clips, test_labels = dataset_utils.get_test_data()
 
-        if model == 'ir_csn':
+        if model == 'ir-csn':
             self.train_dataset = train_utils.TrainDataset(videos=train_clips, labels=train_labels,
                                                           resize=train_utils.RESIZE, crop_size=train_utils.CROP_SIZE,
                                                           clip_len=train_utils.CLIP_LEN)
@@ -111,19 +111,23 @@ class Trainer:
             self.eval_step()
             self.save_checkpoint(ckpt_name='model')
             self.save_checkpoint(ckpt_name='model-{}'.format(self.epoch))
+            exit()
 
     def train_step(self):
         print('INFO: training...')
-        dataloader = tdata.DataLoader(self.train_dataset)
+        dataloader = tdata.DataLoader(self.train_dataset, batch_size=self.train_batch_size, shuffle=True,
+                                      num_workers=6, pin_memory=True, collate_fn=self.train_dataset.collate_fn)
         self.model.train()
         epoch_losses = []
         i = 0
         for frames, labels in tqdm(dataloader):
             self.model.zero_grad()
             frames = frames.cuda()
+            print(frames.shape)
             labels = labels.cuda()
+            print(labels.shape)
             logits = self.model(frames)
-
+            print(logits.shape)
             loss = self.loss_fn(logits, labels)
             loss.backward()
             self.optimizer.step()
@@ -195,7 +199,6 @@ class Trainer:
                         n_clips = video_prediction['n_clips']
                         video_prediction['logit'] = video_prediction['logit'] * ((n_clips - 1) / n_clips) + \
                                                     logit / n_clips
-
         n_correct = 0
         n_videos = len(dataset.video_files)
 
@@ -252,7 +255,8 @@ def _execute_training():
     argparser = argparse.ArgumentParser()
     argparser.add_argument('-c', '--config', required=True, type=str, help='config filename e.g -c base')
     args = argparser.parse_args()
-    Trainer(experiment=args.config)
+    trainer = Trainer(experiment=args.config)
+    trainer.train()
 
 
 def main():
