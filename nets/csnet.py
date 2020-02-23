@@ -196,7 +196,6 @@ class IrCsn152(nn.Module):
         for b_layer in b_layers:
             init_bottleneck_layers(b_layer)
 
-
     def load_caffe_weights(self):
         checkpoint = load_csn_model(ckpt=self.pretrained_ckpt)
         conv1_layers = list(self.conv1.children())
@@ -276,7 +275,7 @@ def load_csn_model(ckpt='ig65'):
 
 def test_implementation():
     import data.kinetics_data as kinetics
-    import data.ir_csn_data as ir_csn
+    import utils.csnet_utils as ir_csn
     network = IrCsn152(N_CLASSES_KINETICS, clip_len=ir_csn.CLIP_LEN, crop_size=ir_csn.CROP_SIZE)
     network.eval()
     video_files, labels = kinetics.get_train_data()

@@ -9,7 +9,7 @@ from torch.optim import Adam
 from torch.optim.lr_scheduler import StepLR
 from tensorboardX import SummaryWriter
 
-import data.ir_csn_data as csnet_data
+import utils.csnet_utils as csnet_utils
 from nets.csnet import IrCsn152
 
 PROJECT_DIR = os.path.dirname(__file__)
@@ -46,7 +46,7 @@ class Trainer:
             raise ValueError('no such dataset')
 
         if model == 'ir-csn':
-            self.crop_size = csnet_data.CROP_SIZE
+            self.crop_size = csnet_utils.CROP_SIZE
             self.model = IrCsn152(n_classes=dataset.N_CLASSES, clip_len=self.clip_len, crop_size=self.crop_size)
         else:
             raise ValueError('no such model')
@@ -76,9 +76,9 @@ class Trainer:
         test_clips, test_labels = dataset.get_test_data()
 
         if model == 'ir_csn':
-            self.train_dataset = csnet_data.TrainDataset(videos=train_clips, labels=train_clips,
-                                                         resize=csnet_data.CROP_SIZE, crop_size=csnet_data.CROP_SIZE,
-                                                         clip_len=csnet_data.CLIP_LEN)
+            self.train_dataset = csnet_utils.TrainDataset(videos=train_clips, labels=train_clips,
+                                                          resize=csnet_utils.CROP_SIZE, crop_size=csnet_utils.CROP_SIZE,
+                                                          clip_len=csnet_utils.CLIP_LEN)
             # todo: implement test eval and train eval dataset
         else:
             raise ValueError('no such model... how did you even get here...')
