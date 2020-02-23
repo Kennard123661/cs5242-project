@@ -31,6 +31,7 @@ BAD_TEST_SEGMENTS_FILE = os.path.join(TEST_DIR, 'bad-segments.txt')
 VIDEO_EXT = '.avi'
 LABEL_EXT = '.avi.labels'
 N_CLASSES = 50
+N_EVAL_SEGMENTS = 10
 
 
 def _read_mapping_file(mapping_file):

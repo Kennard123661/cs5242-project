@@ -18,20 +18,20 @@ TORCH_STD = [0.229, 0.224, 0.225]
 
 
 class BaseDataset(tdata.Dataset):
-    def __init__(self, videos, resize, labels, crop_size):
+    def __init__(self, videos, labels, resize, crop_size):
         super(BaseDataset, self).__init__()
         assert len(videos) == len(labels)
-        self.videos = np.array(videos).astype(str)
+        self.video_files = np.array(videos).astype(str)
         self.labels = np.array(labels).astype(int)
         self.resize = resize
         self.crop_size = int(crop_size)
 
         # check that all the videos exists
-        for video in self.videos:
+        for video in self.video_files:
             assert os.path.exists(video)
 
     def __len__(self):
-        return len(self.videos)
+        return len(self.video_files)
 
     @staticmethod
     def collate_fn(batch):

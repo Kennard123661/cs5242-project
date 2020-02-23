@@ -2,14 +2,14 @@ import os
 import json
 import torch
 import numpy as np
+import argparse
 from tqdm import tqdm
 import torch.utils.data as tdata
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.optim import Adam
 from torch.optim.lr_scheduler import StepLR
 from tensorboardX import SummaryWriter
-
-import utils.csnet_utils as csnet_utils
 from nets.csnet import IrCsn152
 
 PROJECT_DIR = os.path.dirname(__file__)
@@ -19,9 +19,9 @@ LOG_DIR = os.path.join(PROJECT_DIR, 'logs')
 
 
 class Trainer:
-    def __init__(self, name):
-        self.name = str(name)
-        config_file = os.path.join(CONFIG_DIR, name + '.json')
+    def __init__(self, experiment):
+        self.experiment = str(experiment)
+        config_file = os.path.join(CONFIG_DIR, experiment + '.json')
         with open(config_file, 'r') as f:
             self.config = json.load(f)
 
@@ -37,19 +37,27 @@ class Trainer:
         self.max_epochs = int(self.config['max-epochs'])
         self.epoch = 0
         self.iteration = 0
-        self.batch_size = int(self.config['batch-size'])
+        self.train_batch_size = int(self.config['train-batch-size'])
+        self.eval_batch_size = int(self.config['test-batch-size'])
         self.n_iterations = int(self.config['num-iterations'])
 
         if dataset_name == 'breakfast':
-            import data.breakfast_data as dataset
+            import data.breakfast_data as dataset_utils
+            self.n_classes = dataset_utils.N_CLASSES
         else:
             raise ValueError('no such dataset')
 
         if model == 'ir-csn':
-            self.crop_size = csnet_utils.CROP_SIZE
-            self.model = IrCsn152(n_classes=dataset.N_CLASSES, clip_len=self.clip_len, crop_size=self.crop_size)
+            import utils.csnet_utils as train_utils
+            self.model = IrCsn152(n_classes=dataset_utils.N_CLASSES, clip_len=self.clip_len,
+                                  crop_size=train_utils.CROP_SIZE)
         else:
             raise ValueError('no such model')
+        if torch.cuda.device_count() > 1:
+            self.train_batch_size = self.train_batch_size * torch.cuda.device_count()
+            self.model = nn.DataParallel(self.model)
+        self.model = self.model.cuda()
+
         self.loss_fn = nn.CrossEntropyLoss()
 
         if optimizer == 'adam':
@@ -64,22 +72,33 @@ class Trainer:
         else:
             raise ValueError('no such scheduler')
 
-        self.checkpoint_dir = os.path.join(CHECKPOINT_DIR, self.name)
-        self.log_dir = os.path.join(LOG_DIR, self.name)
+        self.checkpoint_dir = os.path.join(CHECKPOINT_DIR, self.experiment)
+        self.log_dir = os.path.join(LOG_DIR, self.experiment)
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
         self.logger = SummaryWriter(self.log_dir)
 
-        train_clips, train_labels = dataset.get_train_data()
+        train_clips, train_labels = dataset_utils.get_train_data()
         if self.n_iterations == 0:
             self.n_iterations = len(train_clips)
-        test_clips, test_labels = dataset.get_test_data()
+        test_clips, test_labels = dataset_utils.get_test_data()
 
         if model == 'ir_csn':
-            self.train_dataset = csnet_utils.TrainDataset(videos=train_clips, labels=train_clips,
-                                                          resize=csnet_utils.CROP_SIZE, crop_size=csnet_utils.CROP_SIZE,
-                                                          clip_len=csnet_utils.CLIP_LEN)
-            # todo: implement test eval and train eval dataset
+            self.train_dataset = train_utils.TrainDataset(videos=train_clips, labels=train_labels,
+                                                          resize=train_utils.RESIZE, crop_size=train_utils.CROP_SIZE,
+                                                          clip_len=train_utils.CLIP_LEN)
+
+            # evaluation datasets
+            self.train_eval_dataset = train_utils.EvalDataset(videos=train_clips, labels=train_labels,
+                                                              resize=train_utils.RESIZE,
+                                                              crop_size=train_utils.CROP_SIZE,
+                                                              clip_len=train_utils.CLIP_LEN,
+                                                              n_clips=train_utils.N_EVAL_CLIPS)
+            self.test_eval_dataset = train_utils.EvalDataset(videos=test_clips, labels=test_labels,
+                                                             resize=train_utils.RESIZE,
+                                                             crop_size=train_utils.CROP_SIZE,
+                                                             clip_len=train_utils.CLIP_LEN,
+                                                             n_clips=train_utils.N_EVAL_CLIPS)
         else:
             raise ValueError('no such model... how did you even get here...')
 
@@ -88,8 +107,8 @@ class Trainer:
         for i in range(start_epoch, self.max_epochs):
             print('INFO: epoch {0}/{1}'.format(i+1, self.max_epochs))
             self.train_step()
-            self.eval_step()
             self.epoch += 1
+            self.eval_step()
             self.save_checkpoint(ckpt_name='model')
             self.save_checkpoint(ckpt_name='model-{}'.format(self.epoch))
 
@@ -100,12 +119,12 @@ class Trainer:
         epoch_losses = []
         i = 0
         for frames, labels in tqdm(dataloader):
+            self.model.zero_grad()
             frames = frames.cuda()
             labels = labels.cuda()
             logits = self.model(frames)
-            loss = self.loss_fn(logits, labels)
 
-            self.model.zero_grad()
+            loss = self.loss_fn(logits, labels)
             loss.backward()
             self.optimizer.step()
             i += 1
@@ -122,21 +141,72 @@ class Trainer:
                 'loss': loss
             }
             self.iteration += 1
-            self.logger.add_scalars('{}:train'.format(self.name), train_log, self.iteration)
+            self.logger.add_scalars('{}:train'.format(self.experiment), train_log, self.iteration)
 
-    def eval_step(self):
+    def eval_step(self, evaluate_train=True):
         print('INFO: evaluating...')
         self.model.eval()
-        self.eval_test()
-        self.eval_train()
+        test_accuracy = self.eval_test()
+        eval_log = {
+            'test-accuracy': test_accuracy
+        }
+
+        if evaluate_train:
+            eval_log['train-accuracy'] = self.eval_train()
+        self.logger.add_scalars('{}:evaluation'.format(self.experiment), eval_log, self.epoch)
 
     def eval_train(self):
         print('INFO: evaluating train dataset...')
-        pass
+        return self.eval_dataset(self.train_eval_dataset)
 
     def eval_test(self):
         print('INFO: evaluating test dataset...')
-        pass
+        return self.eval_dataset(self.test_eval_dataset)
+
+    def eval_dataset(self, dataset):
+        dataloader = tdata.DataLoader(dataset=dataset, batch_size=self.eval_batch_size, shuffle=False,
+                                      num_workers=6, pin_memory=True, collate_fn=dataset.collate_fn)
+
+        prediction_dict = dict()
+        for i, video in enumerate(dataset.video_files):
+            video_prediction = {
+                'label': dataset.labels[i],
+                'n_clips': 0,
+                'logit': None
+            }
+            prediction_dict[video] = video_prediction
+        with torch.no_grad():
+            for clips, clip_files in tqdm(dataloader):
+                n_clips = clips.shape[0]
+                clips = clips.cuda()
+                logits = self.model(clips).detach().cpu()
+
+                # update prediction dict.
+                for i in range(n_clips):
+                    logit = logits[i]
+                    clip_file = clip_files[i]
+                    video_prediction = prediction_dict[clip_file]
+
+                    if video_prediction['n_clips'] == 0:
+                        video_prediction['logit'] = logit
+                        video_prediction['n_clips'] = 1
+                    else:  # keep a running average of logits
+                        video_prediction['n_clips'] += 1
+                        n_clips = video_prediction['n_clips']
+                        video_prediction['logit'] = video_prediction['logit'] * ((n_clips - 1) / n_clips) + \
+                                                    logit / n_clips
+
+        n_correct = 0
+        n_videos = len(dataset.video_files)
+
+        for video_dict in prediction_dict:
+            logit = video_dict['logit']
+            label = video_dict['label']
+            prediction = F.softmax(logit).item()
+            if label == prediction:
+                n_correct += 1
+        accuracy = n_correct / n_videos
+        return accuracy
 
     def save_checkpoint(self, ckpt_name):
         if not os.path.exists(self.checkpoint_dir):
@@ -177,8 +247,16 @@ def _set_deterministic_experiments():
     np.random.seed(1234)
 
 
-def main():
+def _execute_training():
     _set_deterministic_experiments()
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument('-c', '--config', required=True, type=str, help='config filename e.g -c base')
+    args = argparser.parse_args()
+    Trainer(experiment=args.config)
+
+
+def main():
+    _execute_training()
     pass
 
 
