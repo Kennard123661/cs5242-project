@@ -1,6 +1,7 @@
 import os
 import json
 import torch
+import sys
 import numpy as np
 import argparse
 from tqdm import tqdm
@@ -11,6 +12,7 @@ from torch.optim import Adam
 from torch.optim.lr_scheduler import StepLR
 from tensorboardX import SummaryWriter
 from nets.csnet import IrCsn152
+from utils.train_utils import CustomLogger
 
 PROJECT_DIR = os.path.dirname(__file__)
 CONFIG_DIR = os.path.join(PROJECT_DIR, 'configs')
@@ -53,9 +55,10 @@ class Trainer:
                                   crop_size=train_utils.CROP_SIZE)
         else:
             raise ValueError('no such model')
-        if torch.cuda.device_count() > 1:
-            self.train_batch_size = self.train_batch_size * torch.cuda.device_count()
-            self.model = nn.DataParallel(self.model)
+        self.train_batch_size = self.train_batch_size * torch.cuda.device_count()
+
+        device_ids = list(range(torch.cuda.device_count()))
+        self.model = nn.DataParallel(self.model, device_ids=device_ids)
         self.model = self.model.cuda()
 
         self.loss_fn = nn.CrossEntropyLoss()
@@ -76,7 +79,7 @@ class Trainer:
         self.log_dir = os.path.join(LOG_DIR, self.experiment)
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
-        self.logger = SummaryWriter(self.log_dir)
+        self.tensorboard_logger = SummaryWriter(self.log_dir)
 
         train_clips, train_labels = dataset_utils.get_train_data()
         if self.n_iterations == 0:
@@ -113,12 +116,17 @@ class Trainer:
             self.save_checkpoint(ckpt_name='model-{}'.format(self.epoch))
 
     def train_step(self):
-        print('INFO: training...')
-        dataloader = tdata.DataLoader(self.train_dataset)
-        self.model.train()
-        epoch_losses = []
+        print('INFO: training at epoch {}'.format(self.epoch))
+        dataloader = tdata.DataLoader(self.train_dataset, batch_size=self.train_batch_size,
+                                      collate_fn=self.train_dataset.collate_fn, shuffle=True, drop_last=True)
+
         i = 0
-        for frames, labels in tqdm(dataloader):
+        epoch_losses = []
+        self.model.train()
+        n_iters = len(self.train_dataset) // self.train_batch_size
+        for frames, labels in dataloader:
+            print('INFO: training at {0}/{1}'.format(i, n_iters))
+
             self.model.zero_grad()
             frames = frames.cuda()
             labels = labels.cuda()
@@ -130,9 +138,6 @@ class Trainer:
             i += 1
 
             epoch_losses.append(loss.item())
-
-            if i == self.n_iterations:
-                break
         epoch_loss = np.mean(epoch_losses)
         print('INFO: training loss: {}'.format(epoch_loss))
 
@@ -141,7 +146,7 @@ class Trainer:
                 'loss': loss
             }
             self.iteration += 1
-            self.logger.add_scalars('{}:train'.format(self.experiment), train_log, self.iteration)
+            self.tensorboard_logger.add_scalars('{}:train'.format(self.experiment), train_log, self.iteration)
 
     def eval_step(self, evaluate_train=True):
         print('INFO: evaluating...')
@@ -153,7 +158,7 @@ class Trainer:
 
         if evaluate_train:
             eval_log['train-accuracy'] = self.eval_train()
-        self.logger.add_scalars('{}:evaluation'.format(self.experiment), eval_log, self.epoch)
+        self.tensorboard_logger.add_scalars('{}:evaluation'.format(self.experiment), eval_log, self.epoch)
 
     def eval_train(self):
         print('INFO: evaluating train dataset...')
@@ -175,8 +180,12 @@ class Trainer:
                 'logit': None
             }
             prediction_dict[video] = video_prediction
+
+        i = 0
+        n_iters = len(dataset) // self.eval_batch_size
         with torch.no_grad():
-            for clips, clip_files in tqdm(dataloader):
+            for clips, clip_files in dataloader:
+                print('INFO: testing at {0}/{1}'.format(i, n_iters))
                 n_clips = clips.shape[0]
                 clips = clips.cuda()
                 logits = self.model(clips).detach().cpu()
@@ -236,7 +245,7 @@ class Trainer:
             self.iteration = checkpoint_dict['iteration']
 
     def __del__(self):
-        self.logger.close()
+        self.tensorboard_logger.close()
         del self.model
 
 
@@ -252,6 +261,8 @@ def _execute_training():
     argparser = argparse.ArgumentParser()
     argparser.add_argument('-c', '--config', required=True, type=str, help='config filename e.g -c base')
     args = argparser.parse_args()
+
+    sys.stdout = CustomLogger(args.config)
     Trainer(experiment=args.config)
 
 
