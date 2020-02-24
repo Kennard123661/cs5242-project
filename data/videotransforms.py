@@ -9,7 +9,7 @@ from PIL import Image
 #todo: add random crops
 class BgrToRgbClip:
     def __call__(self, clip):
-        assert clip[0] == np.ndarray
+        # assert clip[0] == np.ndarray
         return [cv2.cvtColor(frame, cv2.COLOR_BGR2RGB) for frame in clip]
 
 
@@ -65,4 +65,5 @@ class NormalizeClip:
 
 class To3dTensor:
     def __call__(self, clip):
-        return torch.stack(clip)
+        clip = torch.stack(clip)  # T x C x H x W
+        return clip.transpose(1, 0)  # C x T x H x W

@@ -4,7 +4,6 @@ import torch
 import sys
 import numpy as np
 import argparse
-from tqdm import tqdm
 import torch.utils.data as tdata
 import torch.nn as nn
 import torch.nn.functional as F
@@ -86,7 +85,7 @@ class Trainer:
             self.n_iterations = len(train_clips)
         test_clips, test_labels = dataset_utils.get_test_data()
 
-        if model == 'ir_csn':
+        if model == 'ir-csn':
             self.train_dataset = train_utils.TrainDataset(videos=train_clips, labels=train_labels,
                                                           resize=train_utils.RESIZE, crop_size=train_utils.CROP_SIZE,
                                                           clip_len=train_utils.CLIP_LEN)
@@ -129,9 +128,11 @@ class Trainer:
 
             self.model.zero_grad()
             frames = frames.cuda()
+            print(frames.shape)
             labels = labels.cuda()
+            print(labels.shape)
             logits = self.model(frames)
-
+            print(logits.shape)
             loss = self.loss_fn(logits, labels)
             loss.backward()
             self.optimizer.step()
@@ -204,7 +205,6 @@ class Trainer:
                         n_clips = video_prediction['n_clips']
                         video_prediction['logit'] = video_prediction['logit'] * ((n_clips - 1) / n_clips) + \
                                                     logit / n_clips
-
         n_correct = 0
         n_videos = len(dataset.video_files)
 
@@ -263,7 +263,8 @@ def _execute_training():
     args = argparser.parse_args()
 
     sys.stdout = CustomLogger(args.config)
-    Trainer(experiment=args.config)
+    trainer = Trainer(experiment=args.config)
+    trainer.train()
 
 
 def main():
