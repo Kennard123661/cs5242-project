@@ -117,7 +117,7 @@ def get_video_sample_idxs(n_frames, n_samples):
             sampled_idxs = frame_idxs * n_dups
     elif n_frames == n_samples:
         sampled_idxs = list(range(n_frames))
-    elif n_frames < 2 * n_samples:
+    elif n_frames <= 2 * n_samples:
         si = 0
         sampled_idxs = np.empty(shape=n_samples, dtype=int)
         for fi in range(n_frames):
