@@ -13,8 +13,9 @@ N_EVAL_CLIPS = 10
 
 
 class TrainDataset(BaseDataset):
-    def __init__(self, videos, labels, resize, crop_size, clip_len):
-        super(TrainDataset, self).__init__(videos, labels, resize, crop_size)
+    def __init__(self, video_files, video_len_files, labels, resize, crop_size, clip_len):
+        super(TrainDataset, self).__init__(video_files=video_files, video_len_files=video_len_files, labels=labels,
+                                           resize=resize, crop_size=crop_size)
         self.clip_len = int(clip_len)
 
         self.transforms = transforms.Compose([
@@ -31,7 +32,8 @@ class TrainDataset(BaseDataset):
         video_file = self.video_files[idx]
         label = self.labels[idx]
 
-        n_frames = get_n_video_frames(video_file)
+        n_frames_file = self.video_len_files[idx]
+        n_frames = np.load(n_frames_file)
         sample_idxs = get_video_sample_idxs(n_frames, self.clip_len)
         clip = sample_video_clip(video_file, n_frames, sample_idxs)
         clip = np.array(clip)
@@ -40,8 +42,9 @@ class TrainDataset(BaseDataset):
 
 
 class EvalDataset(BaseDataset):
-    def __init__(self, videos, labels, resize, crop_size, clip_len, n_clips):
-        super(EvalDataset, self).__init__(videos, labels, resize, crop_size)
+    def __init__(self, video_files, video_len_files, labels, resize, crop_size, clip_len, n_clips):
+        super(EvalDataset, self).__init__(video_files=video_files, video_len_files=video_len_files,
+                                          labels=labels, resize=resize, crop_size=crop_size)
         self.input_clip_len = int(clip_len)
         self.n_clips = int(n_clips)
         self.transforms = transforms.Compose([
@@ -54,18 +57,13 @@ class EvalDataset(BaseDataset):
             videotransforms.To3dTensor()
         ])
 
-        print('INFO: retrieving number of frames for each video...')
-        video_lens = []
-        for video_file in tqdm(self.video_files):
-            video_lens.append(get_n_video_frames(video_file=video_file))
-        video_lens = np.array(video_lens)
-
         print('INFO: creating clip samples for each video...')
         clip_video_lens = []
         clip_start_frames = []
         clip_files = []
         for i, video_file in enumerate(tqdm(self.video_files)):
-            video_len = video_lens[i]
+            video_len_file = self.video_len_files[i]
+            video_len = np.load(video_len_file)
             if video_len <= 2 * self.input_clip_len:
                 clip_files.append(video_file)
                 clip_start_frames.append(0)

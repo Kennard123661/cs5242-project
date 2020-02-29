@@ -3,6 +3,9 @@ from tqdm import tqdm
 import numpy as np
 import shutil
 
+if __name__ == '__main__':
+    project_dir = os.path.join(os.path.dirname(__file__), '..')
+
 from data import DATA_DIR
 from data import get_n_video_frames, sample_video_clip, write_video_file, get_video_fps
 
@@ -20,12 +23,14 @@ TRAIN_DIR = os.path.join(BREAKFAST_DIR, 'train')
 TRAIN_VID_DIR = os.path.join(TRAIN_DIR, 'videos')
 TRAIN_LABEL_DIR = os.path.join(TRAIN_DIR, 'labels')
 TRAIN_SEGMENT_DIR = os.path.join(TRAIN_DIR, 'segments')
+TRAIN_SEGMENT_N_FRAMES_DIR = os.path.join(TRAIN_DIR, 'n-segment-frames')
 BAD_TRAIN_SEGMENTS_FILE = os.path.join(TRAIN_DIR, 'bad-segments.txt')
 
 TEST_DIR = os.path.join(BREAKFAST_DIR, 'test')
 TEST_VID_DIR = os.path.join(TEST_DIR, 'videos')
 TEST_LABEL_DIR = os.path.join(TEST_DIR, 'labels')
 TEST_SEGMENT_DIR = os.path.join(TEST_DIR, 'segments')
+TEST_SEGMENT_N_FRAMES_DIR = os.path.join(TEST_DIR, 'n-segment-frames')
 BAD_TEST_SEGMENTS_FILE = os.path.join(TEST_DIR, 'bad-segments.txt')
 
 VIDEO_EXT = '.avi'
@@ -176,25 +181,67 @@ def _split_train_test_videos():
     split_videos(TEST_VID_DIR, TEST_LABEL_DIR, test_split)
 
 
+def _generate_segment_n_frames(video_dir, n_frames_dir):
+    """
+    :param video_dir: directory where videos are contained
+    :param n_frames_dir: directory to store n_frames for the videos
+    """
+    print('INFO: generating n frames for video in {0} and saving in {1}'.format(video_dir, n_frames_dir))
+    videos = sorted(os.listdir(video_dir))
+    video_files = [os.path.join(video_dir, video) for video in videos]
+    n_frames_files = [os.path.join(n_frames_dir, video + '.npy') for video in videos]
+    for file in video_files:
+        assert os.path.exists(file), '{} does not exist'.format(file)
+
+    if not os.path.exists(n_frames_dir):
+        os.makedirs(n_frames_dir)
+
+    pbar = tqdm(video_files)
+    for i, video_file in enumerate(pbar):
+        n_frame_file = n_frames_files[i]
+        if os.path.exists(n_frame_file):
+            continue
+        n_frames = get_n_video_frames(video_file)
+        np.save(n_frame_file, n_frames)
+        pbar.set_postfix({'video': video_file})
+
+
+def _generate_train_test_segment_n_frames():
+    _generate_segment_n_frames(TRAIN_SEGMENT_DIR, TRAIN_SEGMENT_N_FRAMES_DIR)
+    _generate_segment_n_frames(TEST_SEGMENT_DIR, TEST_SEGMENT_N_FRAMES_DIR)
+
+
 def get_train_data():
+    """
+    :return: test_video_files - raw video segment files.
+             test_vidoe_labels - labels for each raw video segment
+             test_video_len_files - labels for each video
+    """
     train_videos = sorted(os.listdir(TRAIN_SEGMENT_DIR))
     train_labels = [int(vid.split('.')[-2]) for vid in train_videos]
-    train_videos = [os.path.join(TRAIN_SEGMENT_DIR, vid) for vid in train_videos]
-    return train_videos, train_labels
+    train_video_files = [os.path.join(TRAIN_SEGMENT_DIR, vid) for vid in train_videos]
+    train_video_len_files = [os.path.join(TRAIN_SEGMENT_N_FRAMES_DIR, vid) for vid in train_videos]
+    return train_video_files, train_labels, train_video_len_files
 
 
 def get_test_data():
+    """
+    :return: test_video_files - raw video segment files.
+             test_vidoe_labels - labels for each raw vidoe segment
+             test_video_len_files - labels for each video
+    """
     test_videos = sorted(os.listdir(TEST_SEGMENT_DIR))
     test_labels = [int(vid.split('.')[-2]) for vid in test_videos]
-    test_videos = [os.path.join(TEST_SEGMENT_DIR, vid) for vid in test_videos]
-    return test_videos, test_labels
+    test_video_files = [os.path.join(TEST_SEGMENT_DIR, vid) for vid in test_videos]
+    test_video_len_files = [os.path.join(TEST_SEGMENT_N_FRAMES_DIR, vid) for vid in test_videos]
+    return test_video_files, test_labels, test_video_len_files
 
 
 def main():
     # print(get_train_data())
     # _split_train_test_videos()
     # _extract_train_test_segments()
-    get_train_data()
+    # get_train_data()
     pass
 
 

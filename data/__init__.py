@@ -18,17 +18,20 @@ TORCH_STD = (0.229, 0.224, 0.225)
 
 
 class BaseDataset(tdata.Dataset):
-    def __init__(self, videos, labels, resize, crop_size):
+    def __init__(self, video_files, video_len_files, labels, resize, crop_size):
         super(BaseDataset, self).__init__()
-        assert len(videos) == len(labels)
-        self.video_files = np.array(videos).astype(str)
+        assert len(video_files) == len(video_len_files) == len(labels)
+        self.video_files = np.array(video_files).astype(str)
+        self.video_len_files = np.array(video_len_files).astype(str)
         self.labels = np.array(labels).astype(int)
         self.resize = resize
         self.crop_size = int(crop_size)
 
         # check that all the videos exists
-        for video in self.video_files:
-            assert os.path.exists(video)
+        for file in self.video_files:
+            assert os.path.exists(file)
+        for file in self.video_len_files:
+            assert os.path.exists(file)
 
     def __len__(self):
         return len(self.video_files)

@@ -80,23 +80,26 @@ class Trainer:
             os.makedirs(self.log_dir)
         self.tensorboard_logger = SummaryWriter(self.log_dir)
 
-        train_clips, train_labels = dataset_utils.get_train_data()
+        train_video_files, train_labels, train_video_len_files = dataset_utils.get_train_data()
         if self.n_iterations == 0:
-            self.n_iterations = len(train_clips)
-        test_clips, test_labels = dataset_utils.get_test_data()
+            self.n_iterations = len(train_video_files)
+        test_video_files, test_labels, test_video_len_files = dataset_utils.get_test_data()
 
         if model == 'ir-csn':
-            self.train_dataset = train_utils.TrainDataset(videos=train_clips, labels=train_labels,
+            self.train_dataset = train_utils.TrainDataset(video_files=train_video_files, labels=train_labels,
+                                                          video_len_files=train_video_len_files,
                                                           resize=train_utils.RESIZE, crop_size=train_utils.CROP_SIZE,
                                                           clip_len=train_utils.CLIP_LEN)
 
             # evaluation datasets
-            self.train_eval_dataset = train_utils.EvalDataset(videos=train_clips, labels=train_labels,
+            self.train_eval_dataset = train_utils.EvalDataset(video_files=train_video_files, labels=train_labels,
+                                                              video_len_files=train_video_len_files,
                                                               resize=train_utils.RESIZE,
                                                               crop_size=train_utils.CROP_SIZE,
                                                               clip_len=train_utils.CLIP_LEN,
                                                               n_clips=train_utils.N_EVAL_CLIPS)
-            self.test_eval_dataset = train_utils.EvalDataset(videos=test_clips, labels=test_labels,
+            self.test_eval_dataset = train_utils.EvalDataset(video_files=test_video_files, labels=test_labels,
+                                                             video_len_files=test_video_len_files,
                                                              resize=train_utils.RESIZE,
                                                              crop_size=train_utils.CROP_SIZE,
                                                              clip_len=train_utils.CLIP_LEN,
