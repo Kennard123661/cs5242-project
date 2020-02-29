@@ -182,7 +182,7 @@ class Trainer:
 
     def eval_dataset(self, dataset):
         dataloader = tdata.DataLoader(dataset=dataset, batch_size=self.eval_batch_size, shuffle=False,
-                                      num_workers=2, pin_memory=True, collate_fn=dataset.collate_fn)
+                                      num_workers=1, pin_memory=False, collate_fn=dataset.collate_fn)
 
         prediction_dict = dict()
         for i, video in enumerate(dataset.video_files):
