@@ -8,8 +8,8 @@
   "lr": 0.01,
   "weight-decay": 0,
   "max-epochs": 10,
-  "train-batch-size": 2,
-  "test-batch-size": 8,
+  "train-batch-size": 3,
+  "test-batch-size": 6,
 
   "num-iterations": 2000,
 
