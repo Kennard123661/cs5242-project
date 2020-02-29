@@ -4,7 +4,9 @@ import numpy as np
 import shutil
 
 if __name__ == '__main__':
+    import sys
     project_dir = os.path.join(os.path.dirname(__file__), '..')
+    sys.path.append(project_dir)
 
 from data import DATA_DIR
 from data import get_n_video_frames, sample_video_clip, write_video_file, get_video_fps
@@ -220,7 +222,7 @@ def get_train_data():
     train_videos = sorted(os.listdir(TRAIN_SEGMENT_DIR))
     train_labels = [int(vid.split('.')[-2]) for vid in train_videos]
     train_video_files = [os.path.join(TRAIN_SEGMENT_DIR, vid) for vid in train_videos]
-    train_video_len_files = [os.path.join(TRAIN_SEGMENT_N_FRAMES_DIR, vid) for vid in train_videos]
+    train_video_len_files = [os.path.join(TRAIN_SEGMENT_N_FRAMES_DIR, vid + '.npy') for vid in train_videos]
     return train_video_files, train_labels, train_video_len_files
 
 
@@ -233,7 +235,7 @@ def get_test_data():
     test_videos = sorted(os.listdir(TEST_SEGMENT_DIR))
     test_labels = [int(vid.split('.')[-2]) for vid in test_videos]
     test_video_files = [os.path.join(TEST_SEGMENT_DIR, vid) for vid in test_videos]
-    test_video_len_files = [os.path.join(TEST_SEGMENT_N_FRAMES_DIR, vid) for vid in test_videos]
+    test_video_len_files = [os.path.join(TEST_SEGMENT_N_FRAMES_DIR, vid + '.npy') for vid in test_videos]
     return test_video_files, test_labels, test_video_len_files
 
 
@@ -242,6 +244,7 @@ def main():
     # _split_train_test_videos()
     # _extract_train_test_segments()
     # get_train_data()
+    _generate_train_test_segment_n_frames()
     pass
 
 

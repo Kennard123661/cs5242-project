@@ -10,6 +10,7 @@ import torch.nn.functional as F
 from torch.optim import Adam
 from torch.optim.lr_scheduler import StepLR
 from tensorboardX import SummaryWriter
+from tqdm import tqdm
 from nets.csnet import IrCsn152
 from utils.train_utils import CustomLogger
 
@@ -126,8 +127,9 @@ class Trainer:
         epoch_losses = []
         self.model.train()
         n_iters = len(self.train_dataset) // self.train_batch_size
-        for frames, labels in dataloader:
-            print('INFO: training at {0}/{1}'.format(i, n_iters))
+        pbar = tqdm(dataloader)
+	for frames, labels in pbar:
+            # print('INFO: training at {0}/{1}'.format(i, n_iters))
 
             # self.model.zero_grad()
             frames = frames.cuda()
@@ -142,7 +144,7 @@ class Trainer:
             loss.backward()
             self.optimizer.step()
             i += 1
-
+	    pbar.set_postfix({'loss:', loss.item()})
             epoch_losses.append(loss.item())
         epoch_loss = np.mean(epoch_losses)
         print('INFO: training loss: {}'.format(epoch_loss))

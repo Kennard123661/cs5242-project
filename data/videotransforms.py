@@ -56,8 +56,8 @@ class ClipToTensor:
 
 
 class NormalizeClip:
-    def __init__(self, mean, std, inplace=False):
-        self.normalize = transforms.Normalize(mean, std, inplace=inplace)
+    def __init__(self, mean, std):
+        self.normalize = transforms.Normalize(mean, std)
 
     def __call__(self, clip):
         return [self.normalize(frame) for frame in clip]

@@ -29,9 +29,9 @@ class BaseDataset(tdata.Dataset):
 
         # check that all the videos exists
         for file in self.video_files:
-            assert os.path.exists(file)
+            assert os.path.exists(file), file
         for file in self.video_len_files:
-            assert os.path.exists(file)
+            assert os.path.exists(file), file
 
     def __len__(self):
         return len(self.video_files)
