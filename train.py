@@ -128,7 +128,7 @@ class Trainer:
         self.model.train()
         n_iters = len(self.train_dataset) // self.train_batch_size
         pbar = tqdm(dataloader)
-	for frames, labels in pbar:
+        for frames, labels in pbar:
             # print('INFO: training at {0}/{1}'.format(i, n_iters))
 
             # self.model.zero_grad()
@@ -144,8 +144,10 @@ class Trainer:
             loss.backward()
             self.optimizer.step()
             i += 1
-	    pbar.set_postfix({'loss:', loss.item()})
-            epoch_losses.append(loss.item())
+
+            loss = loss.item()
+            pbar.set_postfix({'loss:', loss})
+            epoch_losses.append(loss)
         epoch_loss = np.mean(epoch_losses)
         print('INFO: training loss: {}'.format(epoch_loss))
 
