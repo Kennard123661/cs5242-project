@@ -126,13 +126,15 @@ class Trainer:
         for frames, labels in dataloader:
             print('INFO: training at {0}/{1}'.format(i, n_iters))
 
-            self.model.zero_grad()
+            # self.model.zero_grad()
             frames = frames.cuda()
-            print(frames.shape)
+            # print(frames.shape)
             labels = labels.cuda()
-            print(labels.shape)
+            # print(labels.shape)
+            self.optimizer.zero_grad()
             logits = self.model(frames)
-            print(logits.shape)
+            # print(logits.shape)
+            
             loss = self.loss_fn(logits, labels)
             loss.backward()
             self.optimizer.step()
@@ -262,7 +264,8 @@ def _execute_training():
     argparser.add_argument('-c', '--config', required=True, type=str, help='config filename e.g -c base')
     args = argparser.parse_args()
 
-    sys.stdout = CustomLogger(args.config)
+    log_file = os.path.join(LOG_DIR, args.config + '.txt')
+    sys.stdout = CustomLogger(log_file)
     trainer = Trainer(experiment=args.config)
     trainer.train()
 

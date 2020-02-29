@@ -64,7 +64,7 @@ class EvalDataset(BaseDataset):
         clip_video_lens = []
         clip_start_frames = []
         clip_files = []
-        for i, video_file in tqdm(self.video_files):
+        for i, video_file in enumerate(tqdm(self.video_files)):
             video_len = video_lens[i]
             if video_len <= 2 * self.input_clip_len:
                 clip_files.append(video_file)
