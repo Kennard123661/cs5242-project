@@ -112,6 +112,8 @@ class Trainer:
         start_epoch = self.epoch
         for i in range(start_epoch, self.max_epochs):
             print('INFO: epoch {0}/{1}'.format(i+1, self.max_epochs))
+            self.eval_step()
+            exit()
             self.train_step()
             self.epoch += 1
             self.eval_step()
