@@ -146,7 +146,7 @@ class Trainer:
             i += 1
 
             loss = loss.item()
-            pbar.set_postfix({'loss:', loss})
+            pbar.set_postfix({'loss:': loss})
             epoch_losses.append(loss)
         epoch_loss = np.mean(epoch_losses)
         print('INFO: training loss: {}'.format(epoch_loss))
