@@ -174,13 +174,15 @@ class Trainer:
 
     def eval_train(self):
         print('INFO: evaluating train dataset...')
-        return self.eval_dataset(self.train_eval_dataset)
+        prediction_file = os.path.join(LOG_DIR, 'epoch-{0}-train-prediction.json')
+        return self.eval_dataset(self.train_eval_dataset, prediction_file)
 
     def eval_test(self):
         print('INFO: evaluating test dataset...')
-        return self.eval_dataset(self.test_eval_dataset)
+        prediction_file = os.path.join(LOG_DIR, 'epoch-{1}-test-prediction.json')
+        return self.eval_dataset(self.test_eval_dataset, prediction_file)
 
-    def eval_dataset(self, dataset):
+    def eval_dataset(self, dataset, prediction_file):
         dataloader = tdata.DataLoader(dataset=dataset, batch_size=self.eval_batch_size, shuffle=False,
                                       num_workers=6, pin_memory=False, collate_fn=dataset.collate_fn)
         prediction_dict = dict()
@@ -218,13 +220,17 @@ class Trainer:
         n_correct = 0
         n_videos = len(dataset.video_files)
 
-        for video_dict in prediction_dict:
+        for video, video_dict in prediction_dict.items():
             logit = video_dict['logit']
             label = video_dict['label']
             prediction = F.softmax(logit).item()
+            video_dict['prediction'] = prediction
             if label == prediction:
                 n_correct += 1
+
         accuracy = n_correct / n_videos
+        with open(prediction_file, 'w') as f:
+            json.dump(prediction_dict, f)
         return accuracy
 
     def save_checkpoint(self, ckpt_name):
