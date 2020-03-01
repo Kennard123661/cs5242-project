@@ -174,13 +174,17 @@ class Trainer:
 
     def eval_train(self):
         print('INFO: evaluating train dataset...')
-        prediction_file = os.path.join(LOG_DIR, 'epoch-{0}-train-prediction.json')
-        return self.eval_dataset(self.train_eval_dataset, prediction_file)
+        prediction_file = os.path.join(LOG_DIR, 'epoch-{0}-train-prediction.json'.format(self.epoch))
+        train_accuracy = self.eval_dataset(self.train_eval_dataset, prediction_file)
+        print('INFO: epoch {0} train accuracy: '.format(train_accuracy))
+        return train_accuracy
 
     def eval_test(self):
         print('INFO: evaluating test dataset...')
-        prediction_file = os.path.join(LOG_DIR, 'epoch-{1}-test-prediction.json')
-        return self.eval_dataset(self.test_eval_dataset, prediction_file)
+        prediction_file = os.path.join(LOG_DIR, 'epoch-{0}-test-prediction.json'.format(self.epoch))
+        test_accuracy = self.eval_dataset(self.test_eval_dataset, prediction_file)
+        print('INFO: epoch {0} test accuracy: '.format(test_accuracy))
+        return test_accuracy
 
     def eval_dataset(self, dataset, prediction_file):
         dataloader = tdata.DataLoader(dataset=dataset, batch_size=self.eval_batch_size, shuffle=False,
@@ -197,7 +201,6 @@ class Trainer:
         i = 0
         n_iters = len(dataset) // self.eval_batch_size
         with torch.no_grad():
-            print('INFO: testing at {0}/{1}'.format(i, n_iters))
             for clips, clip_files in tqdm(dataloader):
                 n_clips = clips.shape[0]
                 clips = clips.cuda()
