@@ -277,8 +277,8 @@ def _execute_training():
     argparser.add_argument('-c', '--config', required=True, type=str, help='config filename e.g -c base')
     args = argparser.parse_args()
 
-    log_file = os.path.join(LOG_DIR, args.config + '.txt')
-    sys.stdout = CustomLogger(log_file)
+    # log_file = os.path.join(LOG_DIR, args.config + '.txt')
+    # sys.stdout = CustomLogger(log_file)
     trainer = Trainer(experiment=args.config)
     trainer.train()
 
