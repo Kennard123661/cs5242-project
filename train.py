@@ -227,7 +227,7 @@ class Trainer:
         for video, video_dict in prediction_dict.items():
             logit = video_dict['logit']
             label = video_dict['label']
-            prediction = F.softmax(logit).item()
+            prediction = torch.argmax(logit).item()
             video_dict['prediction'] = prediction
             if label == prediction:
                 n_correct += 1
