@@ -9,7 +9,7 @@
   "weight-decay": 0,
   "max-epochs": 10,
   "train-batch-size": 3,
-  "test-batch-size": 6,
+  "test-batch-size": 20,
 
   "num-iterations": 2000,
 
