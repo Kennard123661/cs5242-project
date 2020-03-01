@@ -76,6 +76,7 @@ class Trainer:
             raise ValueError('no such scheduler')
 
         self.checkpoint_dir = os.path.join(CHECKPOINT_DIR, self.experiment)
+        self.load_checkpoint(ckpt_name='model')
         self.log_dir = os.path.join(LOG_DIR, self.experiment)
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
