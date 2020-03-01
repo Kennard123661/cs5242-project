@@ -112,10 +112,8 @@ class Trainer:
         start_epoch = self.epoch
         for i in range(start_epoch, self.max_epochs):
             print('INFO: epoch {0}/{1}'.format(i+1, self.max_epochs))
-            self.eval_step()
-            exit()
-            self.train_step()
             self.epoch += 1
+            self.train_step()
             self.eval_step()
             self.save_checkpoint(ckpt_name='model')
             self.save_checkpoint(ckpt_name='model-{}'.format(self.epoch))
@@ -129,20 +127,14 @@ class Trainer:
         i = 0
         epoch_losses = []
         self.model.train()
-        n_iters = len(self.train_dataset) // self.train_batch_size
         pbar = tqdm(dataloader)
         for frames, labels in pbar:
-            # print('INFO: training at {0}/{1}'.format(i, n_iters))
 
-            # self.model.zero_grad()
             frames = frames.cuda()
-            # print(frames.shape)
             labels = labels.cuda()
-            # print(labels.shape)
             self.optimizer.zero_grad()
             logits = self.model(frames)
-            # print(logits.shape)
-            
+
             loss = self.loss_fn(logits, labels)
             loss.backward()
             self.optimizer.step()
@@ -219,15 +211,12 @@ class Trainer:
                         n_clips = video_prediction['n_clips']
                         video_prediction['logit'] = video_prediction['logit'] * ((n_clips - 1) / n_clips) + \
                                                     logit / n_clips
-                break
         n_correct = 0
         n_videos = len(dataset.video_files)
 
         for video, video_dict in prediction_dict.items():
             logit = video_dict['logit']
             label = int(video_dict['label'])
-            if logit is None:
-                continue
             prediction = int(torch.argmax(logit).item())
             video_dict['prediction'] = prediction
             if label == prediction:
