@@ -199,8 +199,6 @@ class Trainer:
             }
             prediction_dict[video] = video_prediction
 
-        i = 0
-        n_iters = len(dataset) // self.eval_batch_size
         with torch.no_grad():
             for clips, clip_files in tqdm(dataloader):
                 n_clips = clips.shape[0]
@@ -221,17 +219,20 @@ class Trainer:
                         n_clips = video_prediction['n_clips']
                         video_prediction['logit'] = video_prediction['logit'] * ((n_clips - 1) / n_clips) + \
                                                     logit / n_clips
+                break
         n_correct = 0
         n_videos = len(dataset.video_files)
 
         for video, video_dict in prediction_dict.items():
             logit = video_dict['logit']
             label = video_dict['label']
+            if logit is None:
+                continue
             prediction = torch.argmax(logit).item()
             video_dict['prediction'] = prediction
             if label == prediction:
                 n_correct += 1
-
+            del video_dict['logit']
         accuracy = n_correct / n_videos
         with open(prediction_file, 'w') as f:
             json.dump(prediction_dict, f)
