@@ -16,5 +16,9 @@ class CustomLogger:
         self.file_stream.write(data)
         self.file_stream.flush()
 
+    def flush(self):
+        self.stream.flush()
+        self.file_stream.flush()
+
     def __del__(self):
         self.file_stream.close()
