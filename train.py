@@ -181,7 +181,7 @@ class Trainer:
         return self.eval_dataset(self.test_eval_dataset)
 
     def eval_dataset(self, dataset):
-        dataloader = tdata.DataLoader(dataset=dataset, batch_size=1, shuffle=False,
+        dataloader = tdata.DataLoader(dataset=dataset, batch_size=self.eval_batch_size, shuffle=False,
                                       num_workers=1, pin_memory=False, collate_fn=dataset.collate_fn)
         prediction_dict = dict()
         for i, video in enumerate(dataset.video_files):
@@ -196,7 +196,7 @@ class Trainer:
         n_iters = len(dataset) // self.eval_batch_size
         with torch.no_grad():
             print('INFO: testing at {0}/{1}'.format(i, n_iters))
-            for clips, clip_files in dataloader:
+            for clips, clip_files in tqdm(dataloader):
                 n_clips = clips.shape[0]
                 clips = clips.cuda()
                 logits = self.model(clips).detach().cpu()
@@ -272,8 +272,8 @@ def _execute_training():
     argparser.add_argument('-c', '--config', required=True, type=str, help='config filename e.g -c base')
     args = argparser.parse_args()
 
-    # log_file = os.path.join(LOG_DIR, args.config + '.txt')
-    # sys.stdout = CustomLogger(log_file)
+    log_file = os.path.join(LOG_DIR, args.config + '.txt')
+    sys.stdout = CustomLogger(log_file)
     trainer = Trainer(experiment=args.config)
     trainer.train()
 
