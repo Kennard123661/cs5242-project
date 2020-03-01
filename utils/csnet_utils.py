@@ -101,7 +101,9 @@ class EvalDataset(BaseDataset):
         sample_idxs = get_video_sample_idxs(clip_len, self.input_clip_len)
         sample_idxs = np.array(sample_idxs) + clip_start_frame
         clip = sample_video_clip(clip_file, clip_video_len, sample_idxs)
+        print('original', clip.shape)
         clip = self.transforms(clip)
+        print('transformed', clip.shape)
         return clip, clip_file
 
 
