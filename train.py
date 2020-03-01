@@ -193,7 +193,7 @@ class Trainer:
         prediction_dict = dict()
         for i, video in enumerate(dataset.video_files):
             video_prediction = {
-                'label': dataset.labels[i],
+                'label': int(dataset.labels[i]),
                 'n_clips': 0,
                 'logit': None
             }
@@ -225,10 +225,10 @@ class Trainer:
 
         for video, video_dict in prediction_dict.items():
             logit = video_dict['logit']
-            label = video_dict['label']
+            label = int(video_dict['label'])
             if logit is None:
                 continue
-            prediction = torch.argmax(logit).item()
+            prediction = int(torch.argmax(logit).item())
             video_dict['prediction'] = prediction
             if label == prediction:
                 n_correct += 1
