@@ -47,6 +47,7 @@ class EvalDataset(BaseDataset):
                                           labels=labels, resize=resize, crop_size=crop_size)
         self.input_clip_len = int(clip_len)
         self.n_clips = int(n_clips)
+        self.video_len_files = video_len_files
         self.transforms = transforms.Compose([
             videotransforms.BgrToRgbClip(),
             videotransforms.ToImageClip(),
@@ -95,7 +96,7 @@ class EvalDataset(BaseDataset):
     def __getitem__(self, idx):
         clip_file = self.clip_files[idx]
         clip_video_len = self.clip_video_lens[idx]
-        clip_start_frame = self.clip_video_lens[idx]
+        clip_start_frame = self.clip_start_frames[idx]
 
         clip_len = clip_video_len - clip_start_frame
         sample_idxs = get_video_sample_idxs(clip_len, self.input_clip_len)
