@@ -123,7 +123,8 @@ class Trainer:
     def train_step(self):
         print('INFO: training at epoch {}'.format(self.epoch))
         dataloader = tdata.DataLoader(self.train_dataset, batch_size=self.train_batch_size,
-                                      collate_fn=self.train_dataset.collate_fn, shuffle=True, drop_last=True)
+                                      collate_fn=self.train_dataset.collate_fn, shuffle=True, num_workers=12,
+                                      drop_last=True)
 
         i = 0
         epoch_losses = []
@@ -188,7 +189,7 @@ class Trainer:
 
     def eval_dataset(self, dataset, prediction_file):
         dataloader = tdata.DataLoader(dataset=dataset, batch_size=self.eval_batch_size, shuffle=False,
-                                      num_workers=6, pin_memory=False, collate_fn=dataset.collate_fn)
+                                      num_workers=12, pin_memory=True, collate_fn=dataset.collate_fn)
         prediction_dict = dict()
         for i, video in enumerate(dataset.video_files):
             video_prediction = {
