@@ -22,14 +22,16 @@ OLD_MAPPING_FILE = os.path.join(SPLIT_DIR, 'mapping_bf.txt')
 MAPPING_FILE = os.path.join(SPLIT_DIR, 'mapping.txt')
 
 TRAIN_DIR = os.path.join(BREAKFAST_DIR, 'train')
-TRAIN_VID_DIR = os.path.join(TRAIN_DIR, 'videos')
+TRAIN_VIDEO_DIR = os.path.join(TRAIN_DIR, 'videos')
+TRAIN_VIDEO_N_FRAMES_DIR = os.path.join(TRAIN_DIR, 'n-video-frames')
 TRAIN_LABEL_DIR = os.path.join(TRAIN_DIR, 'labels')
 TRAIN_SEGMENT_DIR = os.path.join(TRAIN_DIR, 'segments')
 TRAIN_SEGMENT_N_FRAMES_DIR = os.path.join(TRAIN_DIR, 'n-segment-frames')
 BAD_TRAIN_SEGMENTS_FILE = os.path.join(TRAIN_DIR, 'bad-segments.txt')
 
 TEST_DIR = os.path.join(BREAKFAST_DIR, 'test')
-TEST_VID_DIR = os.path.join(TEST_DIR, 'videos')
+TEST_VIDEO_DIR = os.path.join(TEST_DIR, 'videos')
+TEST_VIDEO_N_FRAMES_DIR = os.path.join(TEST_DIR, 'n-video-frames')
 TEST_LABEL_DIR = os.path.join(TEST_DIR, 'labels')
 TEST_SEGMENT_DIR = os.path.join(TEST_DIR, 'segments')
 TEST_SEGMENT_N_FRAMES_DIR = os.path.join(TEST_DIR, 'n-segment-frames')
@@ -131,9 +133,9 @@ def _generate_video_segments(video_dir, label_dir, segment_dir):
 
 def _extract_train_test_segments():
     print('generating train segments')
-    _generate_video_segments(TRAIN_VID_DIR, TRAIN_LABEL_DIR, TRAIN_SEGMENT_DIR)
+    _generate_video_segments(TRAIN_VIDEO_DIR, TRAIN_LABEL_DIR, TRAIN_SEGMENT_DIR)
     print('generating test segments')
-    _generate_video_segments(TEST_VID_DIR, TEST_LABEL_DIR, TEST_SEGMENT_DIR)
+    _generate_video_segments(TEST_VIDEO_DIR, TEST_LABEL_DIR, TEST_SEGMENT_DIR)
 
 
 def _split_train_test_videos():
@@ -176,14 +178,14 @@ def _split_train_test_videos():
                         shutil.copy2(original_label, copy_label)
     print('generating train videos and labels')
     train_split = _get_split_dict(TRAIN_SPLIT_FILE)
-    split_videos(TRAIN_VID_DIR, TRAIN_LABEL_DIR, train_split)
+    split_videos(TRAIN_VIDEO_DIR, TRAIN_LABEL_DIR, train_split)
 
     print('generating test videos and labels')
     test_split = _get_split_dict(TEST_SPLIT_FILE)
-    split_videos(TEST_VID_DIR, TEST_LABEL_DIR, test_split)
+    split_videos(TEST_VIDEO_DIR, TEST_LABEL_DIR, test_split)
 
 
-def _generate_segment_n_frames(video_dir, n_frames_dir):
+def generate_n_frames_files(video_dir, n_frames_dir):
     """
     :param video_dir: directory where videos are contained
     :param n_frames_dir: directory to store n_frames for the videos
@@ -209,8 +211,10 @@ def _generate_segment_n_frames(video_dir, n_frames_dir):
 
 
 def _generate_train_test_segment_n_frames():
-    _generate_segment_n_frames(TRAIN_SEGMENT_DIR, TRAIN_SEGMENT_N_FRAMES_DIR)
-    _generate_segment_n_frames(TEST_SEGMENT_DIR, TEST_SEGMENT_N_FRAMES_DIR)
+    generate_n_frames_files(TRAIN_SEGMENT_DIR, TRAIN_SEGMENT_N_FRAMES_DIR)
+    generate_n_frames_files(TEST_SEGMENT_DIR, TEST_SEGMENT_N_FRAMES_DIR)
+    generate_n_frames_files(TRAIN_VIDEO_DIR, TRAIN_VIDEO_N_FRAMES_DIR)
+    generate_n_frames_files(TEST_VIDEO_DIR, TEST_VIDEO_N_FRAMES_DIR)
 
 
 def get_train_data():
