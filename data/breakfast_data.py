@@ -87,7 +87,7 @@ def _get_split_dict(split_file):
     return split_dict
 
 
-def _read_label_file(label_file):
+def read_label_file(label_file):
     with open(label_file, 'r') as f:
         labels = f.readlines()
     labels = [label.strip() for label in labels]
@@ -116,7 +116,7 @@ def _generate_video_segments(video_dir, label_dir, segment_dir):
         label_file = str(file)[:-len(VIDEO_EXT)] + LABEL_EXT
         label_file = os.path.join(label_dir, label_file)
         fps = get_video_fps(video_file=video_file)
-        segment_windows, segment_actions = _read_label_file(label_file)
+        segment_windows, segment_actions = read_label_file(label_file)
         for i, segment_action in enumerate(segment_actions):
             start, end = segment_windows[i]
             end = min(end, n_frames)
