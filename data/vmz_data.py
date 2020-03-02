@@ -28,6 +28,7 @@ def _generate_feature_extraction_file(video_dir, label_dir, video_len_dir, save_
     video_files = [os.path.join(video_dir, video) for video in videos]
     label_files = [os.path.join(label_dir, video + '.labels') for video in videos]
     video_len_files = [os.path.join(video_len_dir, video + '.npy') for video in videos]
+    action_to_logit_dict, _ = breakfast_data._read_mapping_file(breakfast_data.MAPPING_FILE)
 
     feature_extract_list = []
     pbar = tqdm(video_files)
@@ -48,9 +49,10 @@ def _generate_feature_extraction_file(video_dir, label_dir, video_len_dir, save_
             if start_frame >= (window_end - 1):
                 seg_idx += 1
             window_label = segment_labels[seg_idx]
+            window_label = action_to_logit_dict[window_label]
 
             # format: video_file,label,start_frm,video_id
-            out = ','.join([video_file, window_label, str(start_frame), str(v_idx)])
+            out = ','.join([video_file, str(window_label), str(start_frame), str(v_idx)])
             feature_extract_list.append(out)
             v_idx += 1
 
@@ -58,6 +60,7 @@ def _generate_feature_extraction_file(video_dir, label_dir, video_len_dir, save_
         os.makedirs(os.path.dirname(save_file))
 
     with open(save_file, 'w') as f:
+        f.write('org_video,label,start_frm,video_id\n')
         for line in feature_extract_list:
             f.write(line + '\n')
 

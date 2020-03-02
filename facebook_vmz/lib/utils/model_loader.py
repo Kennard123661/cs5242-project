@@ -20,7 +20,7 @@ from __future__ import unicode_literals
 import logging
 
 import numpy as np
-import cPickle as pickle
+import _pickle as pickle
 from collections import OrderedDict
 
 from caffe2.python import core, workspace, scope
@@ -138,7 +138,7 @@ def LoadModelFromPickleFile(
 
     ws_blobs = workspace.Blobs()
     with open(pkl_file, 'r') as fopen:
-        blobs = pickle.load(fopen)
+        blobs = pickle.load(fopen, encoding='latin1')
 
     if 'blobs' in blobs:
         blobs = blobs['blobs']

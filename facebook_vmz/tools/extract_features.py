@@ -303,8 +303,7 @@ def main():
                         help="Use CuDNN")
     parser.add_argument("--features", type=str, default="final_avg",
                         help="Comma-separated list of blob names to fetch")
-    parser.add_argument("--num_iterations", type=int, default=-1,
-                        help="Run only this many iterations")
+    parser.add_argument("--num_iterations", type=int, default=-1, help="Run only this many iterations")
     parser.add_argument("--num_decode_threads", type=int, default=4,
                         help="")
     parser.add_argument("--clip_length_of", type=int, default=8,

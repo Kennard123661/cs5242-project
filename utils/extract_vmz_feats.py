@@ -102,7 +102,7 @@ def extract_features(args):
 
     reader_args = dict(
         name="extract_features" + '_reader',
-        input_data=args.test_data,
+        input_data=os.path.join(vmz_data.VMZ_DIR, args.test_data),
     )
 
     reader, num_examples = reader_utils.create_data_reader(
@@ -306,7 +306,7 @@ def main():
                                                                       "clips uniformly in time")
     parser.add_argument("--get_video_id", type=int, default=0, help="Output video id")
     parser.add_argument("--multi_label", type=int, default=0, help="Multiple label csv file input")
-    parser.add_argument("--sanity_check", type=bool, action='store_true', help="Sanity check on the accuracy/auc")
+    parser.add_argument("--sanity_check", action='store_true', help="Sanity check on the accuracy/auc")
 
     parser.add_argument("--decode_type", type=int, default=2, help="0: random, 1: uniform sampling, "
                                                                    "2: use starting frame")
@@ -318,6 +318,8 @@ def main():
     parser.add_argument("--use_convolutional_pred", type=int, default=0, help="using convolutional predictions")
     parser.add_argument("--video_res_type", type=int, default=0, help="Video frame scaling option, 0: scaled by "
                                                                       "height x width; 1: scaled by short edge")
+    parser.add_argument("--num_iterations", type=int, default=-1, help="Run only this many iterations")
+
     parser.add_argument("--use_pool1", type=int, default=0, help="use pool1 layer")
     parser.add_argument("--use_local_file", type=int, default=0, help="use local file")
     parser.add_argument("--crop_per_clip", type=int, default=1, help="number of spatial crops per clip")

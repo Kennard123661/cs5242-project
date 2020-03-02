@@ -24,8 +24,7 @@ logging.basicConfig()
 log = logging.getLogger("r3d_model")
 log.setLevel(logging.INFO)
 
-from models.builder.video_model \
-    import VideoModelBuilder
+from facebook_vmz.lib.models.builder.video_model import VideoModelBuilder
 
 # For more depths, add the block config here
 BLOCK_CONFIG = {

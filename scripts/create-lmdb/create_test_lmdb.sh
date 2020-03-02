@@ -14,13 +14,8 @@
 
 # same as create lmdb feature extraction list
 # we do feature extraction for 10 splits
-python3 utils/extract_vmz_feats.py \
---test_data=breakfast/test_lmbd \
---model_name=ir-csn --model_depth=152 --clip_length_rgb=8 --sampling_rate_rgb=2 --use_pool1=1 \
---scale_w=342 --scale_h=256 --crop_size=224 --video_res_type=1 \
---load_model_path=irCSN_152_ft_kinetics_from_ig65m_f126851907.pkl \
---gpus=0 \
---batch_size=1 --num_iterations=1000 \
---output_path=breakfast_data/ircsn512-kinetics-test.pkl \
---features=final_avg,video_id \
---get_video_id=1 --get_start_frame=1 --use_local_file=1 --num_labels=400 --sanity_check
+
+python3 utils/create_vmz_db.py \
+--list_file=breakfast/test.csv \
+--output_file=breakfast/test_lmbd \
+--use_list=1 --use_video_id=1 --use_start_frame=1
