@@ -9,12 +9,13 @@ if __name__ == '__main__':
 from data import DATA_DIR
 import data.breakfast_data as breakfast_data
 VMZ_DIR = os.path.join(DATA_DIR, 'vmz')
+PRETRAINED_MODEL_DIR = os.path.join(VMZ_DIR, 'pretrained-models')
+
 VMZ_BREAKFAST_DIR = os.path.join(VMZ_DIR, 'breakfast')
 TRAIN_BREAKFAST_CSV = os.path.join(VMZ_BREAKFAST_DIR, 'train.csv')
 TEST_BREAKFAST_CSV = os.path.join(VMZ_BREAKFAST_DIR, 'test.csv')
 
-
-BREAKFAST_FEATURE_DIR = os.path.join(VMZ_BREAKFAST_DIR, 'features')
+VMZ_FEATURE_DIR = os.path.join(VMZ_DIR, 'features')
 
 
 def _generate_feature_extraction_file(video_dir, label_dir, video_len_dir, save_file, frame_stride=8, min_clip_len=8):

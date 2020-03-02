@@ -6,3 +6,4 @@ opencv-python
 pandas
 tensorboard
 tensorboardX
+h5py
