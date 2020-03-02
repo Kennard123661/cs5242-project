@@ -7,8 +7,8 @@
 
   "clip-length": 32,
   "lr": 0.01,
-  "weight-decay": 0,
-  "max-epochs": 10,
+  "weight-decay": 1e-4,
+  "max-epochs": 45,
   "train-batch-size": 4,
   "test-batch-size": 20,
 

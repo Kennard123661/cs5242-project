@@ -81,8 +81,7 @@ class Trainer:
             self.scheduler = StepLR(self.optimizer, gamma=lr_decay, step_size=step_size)
         elif scheduler == 'half-cosine':
             self.scheduler = CosineAnnealingWarmRestarts(self.optimizer,
-                                                         T_0=len(train_video_files),
-                                                         last_epoch=self.max_epochs)
+                                                         T_0=len(train_video_files))
         else:
             raise ValueError('no such scheduler')
 
