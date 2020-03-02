@@ -7,11 +7,12 @@ import argparse
 import torch.utils.data as tdata
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.optim import Adam
-from torch.optim.lr_scheduler import StepLR
+from torch.optim import Adam, SGD
+from torch.optim.lr_scheduler import StepLR, CosineAnnealingWarmRestarts
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
 from nets.csnet import IrCsn152
+from utils.scheduler import GradualWarmupScheduler
 from utils.train_utils import CustomLogger
 
 PROJECT_DIR = os.path.dirname(__file__)
@@ -41,7 +42,7 @@ class Trainer:
         self.iteration = 0
         self.train_batch_size = int(self.config['train-batch-size'])
         self.eval_batch_size = int(self.config['test-batch-size'])
-        self.n_iterations = int(self.config['num-iterations'])
+        self.warmup_scheduler = bool(self.config['warmup-scheduler'])
 
         if dataset_name == 'breakfast':
             import data.breakfast_data as dataset_utils
@@ -55,16 +56,22 @@ class Trainer:
                                   crop_size=train_utils.CROP_SIZE)
         else:
             raise ValueError('no such model')
-        self.train_batch_size = self.train_batch_size * torch.cuda.device_count()
+        train_video_files, train_labels, train_video_len_files = dataset_utils.get_train_data()
+        test_video_files, test_labels, test_video_len_files = dataset_utils.get_test_data()
 
+        self.train_batch_size = self.train_batch_size * torch.cuda.device_count()
         device_ids = list(range(torch.cuda.device_count()))
         self.model = nn.DataParallel(self.model, device_ids=device_ids)
         self.model = self.model.cuda()
 
         self.loss_fn = nn.CrossEntropyLoss()
 
+
         if optimizer == 'adam':
             self.optimizer = Adam(self.model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
+        elif optimizer == 'sgd':
+            self.optimizer = SGD(self.model.parameters(), lr=self.lr, weight_decay=self.weight_decay,
+                                 momentum=0)
         else:
             raise ValueError('no such optimizer')
 
@@ -72,8 +79,19 @@ class Trainer:
             step_size = self.config['lr-decay-step-size']
             lr_decay = self.config['lr-decay-rate']
             self.scheduler = StepLR(self.optimizer, gamma=lr_decay, step_size=step_size)
+        elif scheduler == 'half-cosine':
+            self.scheduler = CosineAnnealingWarmRestarts(self.optimizer,
+                                                         T_0=len(train_video_files),
+                                                         last_epoch=self.max_epochs)
         else:
             raise ValueError('no such scheduler')
+
+        if self.warmup_scheduler:
+            if scheduler == 'half-cosine':
+                self.scheduler = GradualWarmupScheduler(self.optimizer, multiplier=8, total_epoch=10,
+                                                        after_scheduler=self.scheduler)
+            else:
+                raise ValueError('no such scheduler')
 
         self.checkpoint_dir = os.path.join(CHECKPOINT_DIR, self.experiment)
         self.load_checkpoint(ckpt_name='model')
@@ -81,11 +99,6 @@ class Trainer:
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
         self.tensorboard_logger = SummaryWriter(self.log_dir)
-
-        train_video_files, train_labels, train_video_len_files = dataset_utils.get_train_data()
-        if self.n_iterations == 0:
-            self.n_iterations = len(train_video_files)
-        test_video_files, test_labels, test_video_len_files = dataset_utils.get_test_data()
 
         if model == 'ir-csn':
             self.train_dataset = train_utils.TrainDataset(video_files=train_video_files, labels=train_labels,

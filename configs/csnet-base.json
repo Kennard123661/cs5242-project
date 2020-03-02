@@ -1,15 +1,15 @@
 {
   "model": "ir-csn",
-  "optimizer": "adam",
-  "scheduler": "step",
+  "optimizer": "sgd",
+  "scheduler": "half-cosine",
   "dataset": "breakfast",
+  "warmup-scheduler": 1,
 
-  "warmup-scheduler": 0,
   "clip-length": 32,
   "lr": 0.01,
   "weight-decay": 0,
   "max-epochs": 10,
-  "train-batch-size": 3,
+  "train-batch-size": 4,
   "test-batch-size": 20,
 
   "lr-decay-step-size": 100,
