@@ -182,14 +182,14 @@ class Trainer:
         print('INFO: evaluating train dataset...')
         prediction_file = os.path.join(LOG_DIR, 'epoch-{0}-train-prediction.json'.format(self.epoch))
         train_accuracy = self.eval_dataset(self.train_eval_dataset, prediction_file)
-        print('INFO: epoch {0} train accuracy: '.format(train_accuracy))
+        print('INFO: epoch {0} train accuracy: {1}'.format(self.epoch, train_accuracy))
         return train_accuracy
 
     def eval_test(self):
         print('INFO: evaluating test dataset...')
         prediction_file = os.path.join(LOG_DIR, 'epoch-{0}-test-prediction.json'.format(self.epoch))
         test_accuracy = self.eval_dataset(self.test_eval_dataset, prediction_file)
-        print('INFO: epoch {0} test accuracy: '.format(test_accuracy))
+        print('INFO: epoch {0} test accuracy: {1}'.format(self.epoch, test_accuracy))
         return test_accuracy
 
     def eval_dataset(self, dataset, prediction_file):
