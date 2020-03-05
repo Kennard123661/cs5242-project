@@ -10,7 +10,7 @@
   "weight-decay": 0,
   "max-epochs": 45,
   "train-batch-size": 4,
-  "test-batch-size": 20,
+  "test-batch-size": 25,
 
   "lr-decay-step-size": 100,
   "lr-decay-rate": 0.5
